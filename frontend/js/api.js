@@ -1,6 +1,6 @@
 // API Client for Paper Trading Dashboard
 
-const API_BASE = '/api';
+const API_BASE = 'https://dashboard-api.emily-cogsdill.workers.dev/api';
 
 const api = {
     // Algorithms

@@ -2,7 +2,8 @@
 Trading Engine Worker
 Runs on cron schedule to execute trading algorithms against Alpaca paper trading API.
 """
-from js import fetch, Response, Headers, JSON
+from js import fetch, Response, Headers, JSON, Request, Object
+from pyodide.ffi import to_js, create_proxy
 import json
 import uuid
 from datetime import datetime
@@ -33,8 +34,80 @@ async def on_scheduled(event, env, ctx):
 async def on_fetch(request, env, ctx):
     """HTTP handler for manual triggers and health checks"""
     url = request.url
+    headers_json = Headers.new({"Content-Type": "application/json"}.items())
+
     if "/health" in url:
-        return Response.new(json.dumps({"status": "ok"}), headers=Headers.new({"Content-Type": "application/json"}.items()))
+        return Response.new(json.dumps({"status": "ok"}), headers=headers_json)
+
+    if "/status" in url:
+        # Check Alpaca connection and market status
+        try:
+            # Check if secrets are available
+            api_key = getattr(env, 'ALPACA_API_KEY', None)
+            secret_key = getattr(env, 'ALPACA_SECRET_KEY', None)
+
+            if not api_key or not secret_key:
+                return Response.new(json.dumps({
+                    "error": "Alpaca credentials not configured",
+                    "has_api_key": api_key is not None,
+                    "has_secret_key": secret_key is not None
+                }), status=500, headers=headers_json)
+
+            # Use alpaca_fetch helper for authenticated requests
+            clock_resp = await alpaca_fetch("https://paper-api.alpaca.markets/v2/clock", env)
+            clock_status = clock_resp.status
+            clock_text = await clock_resp.text()
+
+            if clock_status != 200:
+                # Debug info for troubleshooting
+                api_key_str = str(api_key)
+                secret_key_str = str(secret_key)
+                return Response.new(json.dumps({
+                    "error": "Alpaca clock API error",
+                    "status": clock_status,
+                    "response": clock_text[:500] if clock_text else "empty",
+                    "api_key_len": len(api_key_str),
+                    "secret_key_len": len(secret_key_str),
+                    "api_key_repr": repr(api_key_str[:20]) if len(api_key_str) >= 20 else repr(api_key_str)
+                }), status=500, headers=headers_json)
+
+            clock = json.loads(clock_text) if clock_text else {}
+
+            account_resp = await alpaca_fetch("https://paper-api.alpaca.markets/v2/account", env)
+            account_text = await account_resp.text()
+            account = json.loads(account_text) if account_text else {}
+
+            algorithms = await get_enabled_algorithms(env)
+
+            return Response.new(json.dumps({
+                "alpaca_connected": "id" in account,
+                "market_open": clock.get("is_open", False),
+                "next_open": clock.get("next_open"),
+                "next_close": clock.get("next_close"),
+                "account_equity": account.get("equity"),
+                "account_buying_power": account.get("buying_power"),
+                "account_status": account.get("status"),
+                "enabled_algorithms": len(algorithms),
+                "algorithm_names": [a["name"] for a in algorithms]
+            }), headers=headers_json)
+        except Exception as e:
+            import traceback
+            return Response.new(json.dumps({"error": str(e), "type": type(e).__name__}), status=500, headers=headers_json)
+
+    if "/test" in url:
+        # Force run regardless of market status (for testing)
+        try:
+            algorithms = await get_enabled_algorithms(env)
+            results = []
+            for algo in algorithms:
+                try:
+                    await run_algorithm(algo, env)
+                    results.append({"algorithm": algo["name"], "status": "executed"})
+                except Exception as e:
+                    results.append({"algorithm": algo["name"], "status": "error", "error": str(e)})
+            return Response.new(json.dumps({"test_run": True, "results": results}), headers=headers_json)
+        except Exception as e:
+            return Response.new(json.dumps({"error": str(e)}), status=500, headers=headers_json)
 
     if "/run" in url:
         return await on_scheduled(None, env, ctx)
@@ -45,19 +118,19 @@ async def on_fetch(request, env, ctx):
 async def is_market_open(env) -> bool:
     """Check if US stock market is currently open using Alpaca clock API"""
     try:
-        headers = get_alpaca_headers(env)
-        response = await fetch(
-            "https://paper-api.alpaca.markets/v2/clock",
-            {
-                "method": "GET",
-                "headers": headers
-            }
-        )
+        response = await alpaca_fetch("https://paper-api.alpaca.markets/v2/clock", env)
         data = json.loads(await response.text())
         return data.get("is_open", False)
     except Exception as e:
         print(f"Error checking market status: {e}")
         return False
+
+
+def js_to_py(obj):
+    """Convert JsProxy object to Python dict/list"""
+    if hasattr(obj, 'to_py'):
+        return obj.to_py()
+    return obj
 
 
 async def get_enabled_algorithms(env) -> list:
@@ -68,8 +141,9 @@ async def get_enabled_algorithms(env) -> list:
         ).all()
 
         algorithms = []
-        for row in result.results:
-            algo = dict(row)
+        results = js_to_py(result.results)
+        for row in results:
+            algo = js_to_py(row) if hasattr(row, 'to_py') else dict(row)
             algo["config"] = json.loads(algo["config"]) if isinstance(algo["config"], str) else algo["config"]
             algo["symbols"] = json.loads(algo["symbols"]) if isinstance(algo["symbols"], str) else algo["symbols"]
             algorithms.append(algo)
@@ -206,10 +280,8 @@ async def run_buy_and_hold(algo, config, symbols, env):
 async def get_bars(symbol: str, limit: int, env) -> list:
     """Fetch OHLCV bars from Alpaca"""
     try:
-        headers = get_alpaca_headers(env)
         url = f"https://data.alpaca.markets/v2/stocks/{symbol}/bars?timeframe=1Day&limit={limit}&feed=iex"
-
-        response = await fetch(url, {"method": "GET", "headers": headers})
+        response = await alpaca_fetch(url, env)
         data = json.loads(await response.text())
         return data.get("bars", []) or []
     except Exception as e:
@@ -223,7 +295,9 @@ async def get_position(algorithm_id: str, symbol: str, env):
         result = await env.DB.prepare(
             "SELECT * FROM positions WHERE algorithm_id = ? AND symbol = ?"
         ).bind(algorithm_id, symbol).first()
-        return dict(result) if result else None
+        if not result:
+            return None
+        return js_to_py(result) if hasattr(result, 'to_py') else dict(result)
     except Exception as e:
         print(f"Error fetching position: {e}")
         return None
@@ -232,11 +306,7 @@ async def get_position(algorithm_id: str, symbol: str, env):
 async def get_account(env) -> dict:
     """Get Alpaca account info"""
     try:
-        headers = get_alpaca_headers(env)
-        response = await fetch(
-            "https://paper-api.alpaca.markets/v2/account",
-            {"method": "GET", "headers": headers}
-        )
+        response = await alpaca_fetch("https://paper-api.alpaca.markets/v2/account", env)
         return json.loads(await response.text())
     except Exception as e:
         print(f"Error fetching account: {e}")
@@ -265,7 +335,6 @@ async def submit_order(algo, symbol, side, quantity_or_pct, env, notes=""):
             return
 
         # Submit order to Alpaca
-        headers = get_alpaca_headers(env)
         order_data = {
             "symbol": symbol,
             "qty": str(quantity),
@@ -274,13 +343,11 @@ async def submit_order(algo, symbol, side, quantity_or_pct, env, notes=""):
             "time_in_force": "day"
         }
 
-        response = await fetch(
+        response = await alpaca_fetch(
             "https://paper-api.alpaca.markets/v2/orders",
-            {
-                "method": "POST",
-                "headers": headers,
-                "body": json.dumps(order_data)
-            }
+            env,
+            method="POST",
+            body=order_data
         )
         result = json.loads(await response.text())
 
@@ -360,9 +427,28 @@ async def update_position_sell(algorithm_id, symbol, quantity, env):
 
 
 def get_alpaca_headers(env):
-    """Get Alpaca API authentication headers"""
-    return Headers.new({
-        "APCA-API-KEY-ID": env.ALPACA_API_KEY,
-        "APCA-API-SECRET-KEY": env.ALPACA_SECRET_KEY,
-        "Content-Type": "application/json"
-    }.items())
+    """Get Alpaca API authentication headers as a new Headers object"""
+    h = Headers.new()
+    h.set("APCA-API-KEY-ID", str(env.ALPACA_API_KEY))
+    h.set("APCA-API-SECRET-KEY", str(env.ALPACA_SECRET_KEY))
+    h.set("Content-Type", "application/json")
+    return h
+
+
+async def alpaca_fetch(url: str, env, method: str = "GET", body=None):
+    """Make authenticated request to Alpaca API using Request object"""
+    headers = Headers.new()
+    headers.set("APCA-API-KEY-ID", str(env.ALPACA_API_KEY))
+    headers.set("APCA-API-SECRET-KEY", str(env.ALPACA_SECRET_KEY))
+    headers.set("Content-Type", "application/json")
+
+    # Create init object using JSON.parse to ensure it's a pure JS object
+    init_dict = {"method": method}
+    if body:
+        init_dict["body"] = json.dumps(body) if isinstance(body, dict) else body
+
+    init = JSON.parse(json.dumps(init_dict))
+    init.headers = headers
+
+    request = Request.new(url, init)
+    return await fetch(request)

@@ -2,7 +2,7 @@
 Dashboard API Worker
 REST API for the paper trading dashboard frontend.
 """
-from js import fetch, Response, Headers, JSON
+from js import fetch, Response, Headers, JSON, Request
 import json
 import uuid
 
@@ -360,15 +360,16 @@ async def get_comparison(env, cors_headers):
 async def get_account(env, cors_headers):
     """GET /api/account - Get Alpaca account info"""
     try:
-        headers = Headers.new({
-            "APCA-API-KEY-ID": env.ALPACA_API_KEY,
-            "APCA-API-SECRET-KEY": env.ALPACA_SECRET_KEY
-        }.items())
+        headers = Headers.new()
+        headers.set("APCA-API-KEY-ID", str(env.ALPACA_API_KEY))
+        headers.set("APCA-API-SECRET-KEY", str(env.ALPACA_SECRET_KEY))
+        headers.set("Content-Type", "application/json")
 
-        response = await fetch(
-            "https://paper-api.alpaca.markets/v2/account",
-            {"method": "GET", "headers": headers}
-        )
+        init = JSON.parse(json.dumps({"method": "GET"}))
+        init.headers = headers
+
+        request = Request.new("https://paper-api.alpaca.markets/v2/account", init)
+        response = await fetch(request)
         data = json.loads(await response.text())
 
         return Response.new(

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paper Trading Dashboard</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <h1>Paper Trading Dashboard</h1>
+        <div class="nav-links">
+            <a href="#" class="nav-link active" data-page="dashboard">Dashboard</a>
+            <a href="#" class="nav-link" data-page="algorithms">Algorithms</a>
+            <a href="#" class="nav-link" data-page="comparison">Comparison</a>
+        </div>
+    </nav>
+
+    <main class="container">
+        <!-- Dashboard Page -->
+        <div id="page-dashboard" class="page active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Algorithms</h3>
+                    <p id="total-algorithms">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Best Performer</h3>
+                    <p id="best-performer">-</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Worst Performer</h3>
+                    <p id="worst-performer">-</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Trades</h3>
+                    <p id="total-trades">0</p>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <h2>Equity Curves</h2>
+                <canvas id="equity-chart"></canvas>
+            </div>
+
+            <div class="recent-trades">
+                <h2>Recent Trades</h2>
+                <table id="trades-table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Algorithm</th>
+                            <th>Symbol</th>
+                            <th>Side</th>
+                            <th>Quantity</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Algorithms Page -->
+        <div id="page-algorithms" class="page">
+            <div class="page-header">
+                <h2>Algorithms</h2>
+                <button id="btn-new-algorithm" class="btn btn-primary">+ New Algorithm</button>
+            </div>
+
+            <div id="algorithms-list" class="algorithms-grid"></div>
+
+            <!-- New Algorithm Modal -->
+            <div id="modal-algorithm" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h2 id="modal-title">New Algorithm</h2>
+                    <form id="algorithm-form">
+                        <input type="hidden" id="algo-id">
+                        <div class="form-group">
+                            <label for="algo-name">Name</label>
+                            <input type="text" id="algo-name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="algo-description">Description</label>
+                            <textarea id="algo-description"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="algo-strategy">Strategy Type</label>
+                            <select id="algo-strategy">
+                                <option value="sma_crossover">SMA Crossover</option>
+                                <option value="rsi">RSI Mean Reversion</option>
+                                <option value="momentum">Momentum</option>
+                                <option value="buy_and_hold">Buy and Hold</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="algo-symbols">Symbols (comma-separated)</label>
+                            <input type="text" id="algo-symbols" placeholder="AAPL, GOOGL, MSFT">
+                        </div>
+                        <div id="strategy-config"></div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">Save</button>
+                            <button type="button" class="btn btn-secondary" id="btn-cancel">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparison Page -->
+        <div id="page-comparison" class="page">
+            <h2>Algorithm Comparison</h2>
+            <div class="comparison-chart-container">
+                <canvas id="comparison-chart"></canvas>
+            </div>
+            <table id="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Algorithm</th>
+                        <th>Total Return</th>
+                        <th>Sharpe Ratio</th>
+                        <th>Max Drawdown</th>
+                        <th>Trades</th>
+                        <th>Days Active</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </main>
+
+    <script src="js/api.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

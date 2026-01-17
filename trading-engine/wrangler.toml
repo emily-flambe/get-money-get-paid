@@ -1,0 +1,16 @@
+name = "trading-engine"
+main = "src/entry.py"
+compatibility_date = "2024-12-01"
+compatibility_flags = ["python_workers"]
+
+[triggers]
+crons = ["*/1 * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "paper-trading"
+database_id = "464b0ce8-bc00-477e-94b4-b17cb539574b"
+
+[vars]
+ALPACA_BASE_URL = "https://paper-api.alpaca.markets"
+ALPACA_DATA_URL = "https://data.alpaca.markets"

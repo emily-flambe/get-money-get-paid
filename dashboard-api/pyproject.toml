@@ -1,0 +1,10 @@
+[project]
+name = "dashboard-api"
+version = "0.1.0"
+description = "Dashboard API for paper trading platform"
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

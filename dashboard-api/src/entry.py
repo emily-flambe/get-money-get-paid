@@ -88,13 +88,21 @@ async def on_fetch(request, env, ctx):
         )
 
 
+def js_to_py(obj):
+    """Convert JsProxy object to Python dict/list"""
+    if hasattr(obj, 'to_py'):
+        return obj.to_py()
+    return obj
+
+
 async def list_algorithms(env, cors_headers):
     """GET /api/algorithms - List all algorithms"""
     result = await env.DB.prepare("SELECT * FROM algorithms ORDER BY created_at DESC").all()
 
     algorithms = []
-    for row in result.results:
-        algo = dict(row)
+    results = js_to_py(result.results)
+    for row in results:
+        algo = js_to_py(row) if hasattr(row, 'to_py') else dict(row)
         algo["config"] = json.loads(algo["config"]) if isinstance(algo["config"], str) else algo["config"]
         algo["symbols"] = json.loads(algo["symbols"]) if isinstance(algo["symbols"], str) else algo["symbols"]
         algorithms.append(algo)
@@ -142,7 +150,7 @@ async def get_algorithm(algo_id, env, cors_headers):
             headers=Headers.new(cors_headers.items())
         )
 
-    algo = dict(result)
+    algo = js_to_py(result) if hasattr(result, 'to_py') else dict(result)
     algo["config"] = json.loads(algo["config"]) if isinstance(algo["config"], str) else algo["config"]
     algo["symbols"] = json.loads(algo["symbols"]) if isinstance(algo["symbols"], str) else algo["symbols"]
 
@@ -204,8 +212,11 @@ async def get_algorithm_trades(algo_id, env, cors_headers):
         SELECT * FROM trades WHERE algorithm_id = ? ORDER BY submitted_at DESC LIMIT 100
     """).bind(algo_id).all()
 
+    results = js_to_py(result.results)
+    trades = [js_to_py(row) if hasattr(row, 'to_py') else dict(row) for row in results]
+
     return Response.new(
-        json.dumps({"trades": [dict(row) for row in result.results]}),
+        json.dumps({"trades": trades}),
         headers=Headers.new(cors_headers.items())
     )
 
@@ -217,8 +228,9 @@ async def get_algorithm_snapshots(algo_id, env, cors_headers):
     """).bind(algo_id).all()
 
     snapshots = []
-    for row in result.results:
-        snap = dict(row)
+    results = js_to_py(result.results)
+    for row in results:
+        snap = js_to_py(row) if hasattr(row, 'to_py') else dict(row)
         snap["positions"] = json.loads(snap["positions"]) if snap.get("positions") and isinstance(snap["positions"], str) else snap.get("positions")
         snapshots.append(snap)
 
@@ -234,8 +246,11 @@ async def get_algorithm_positions(algo_id, env, cors_headers):
         SELECT * FROM positions WHERE algorithm_id = ?
     """).bind(algo_id).all()
 
+    results = js_to_py(result.results)
+    positions = [js_to_py(row) if hasattr(row, 'to_py') else dict(row) for row in results]
+
     return Response.new(
-        json.dumps({"positions": [dict(row) for row in result.results]}),
+        json.dumps({"positions": positions}),
         headers=Headers.new(cors_headers.items())
     )
 
@@ -246,7 +261,8 @@ async def get_algorithm_performance(algo_id, env, cors_headers):
         SELECT * FROM snapshots WHERE algorithm_id = ? ORDER BY snapshot_date ASC
     """).bind(algo_id).all()
 
-    if not snapshots.results:
+    results = js_to_py(snapshots.results)
+    if not results:
         return Response.new(
             json.dumps({
                 "algorithm_id": algo_id,
@@ -261,7 +277,7 @@ async def get_algorithm_performance(algo_id, env, cors_headers):
             headers=Headers.new(cors_headers.items())
         )
 
-    snapshots_list = [dict(s) for s in snapshots.results]
+    snapshots_list = [js_to_py(s) if hasattr(s, 'to_py') else dict(s) for s in results]
 
     initial_equity = snapshots_list[0]["equity"]
     final_equity = snapshots_list[-1]["equity"]
@@ -299,7 +315,8 @@ async def get_algorithm_performance(algo_id, env, cors_headers):
     trades = await env.DB.prepare("""
         SELECT COUNT(*) as count FROM trades WHERE algorithm_id = ?
     """).bind(algo_id).first()
-    trade_count = trades["count"] if trades else 0
+    trades_dict = js_to_py(trades) if trades and hasattr(trades, 'to_py') else (dict(trades) if trades else {})
+    trade_count = trades_dict.get("count", 0) if trades_dict else 0
 
     return Response.new(
         json.dumps({
@@ -321,8 +338,9 @@ async def get_comparison(env, cors_headers):
     algorithms = await env.DB.prepare("SELECT id, name FROM algorithms").all()
 
     comparison = []
-    for algo in algorithms.results:
-        algo_dict = dict(algo)
+    results = js_to_py(algorithms.results)
+    for algo in results:
+        algo_dict = js_to_py(algo) if hasattr(algo, 'to_py') else dict(algo)
         # Get performance for each
         perf_response = await get_algorithm_performance(algo_dict["id"], env, cors_headers)
         perf_text = await perf_response.text()

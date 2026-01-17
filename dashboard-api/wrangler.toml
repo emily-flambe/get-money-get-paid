@@ -1,7 +1,12 @@
-name = "dashboard-api"
+name = "get-money-get-paid"
 main = "src/entry.py"
 compatibility_date = "2024-12-01"
 compatibility_flags = ["python_workers"]
+account_id = "facf6619808dc039df729531bbb26d1d"
+
+[[routes]]
+pattern = "stonks.emilycogsdill.com"
+custom_domain = true
 
 [[d1_databases]]
 binding = "DB"
@@ -10,3 +15,14 @@ database_id = "464b0ce8-bc00-477e-94b4-b17cb539574b"
 
 [vars]
 ALPACA_BASE_URL = "https://paper-api.alpaca.markets"
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+invocation_logs = true
+
+[dev]
+port = 8787

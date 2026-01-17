@@ -3,58 +3,61 @@ active: true
 iteration: 1
 max_iterations: 25
 completion_promise: "SIGNAL"
-started_at: "2026-01-17T05:38:37Z"
+started_at: "2026-01-17T05:56:21Z"
 ---
 
-Set up full-stack test suite for paper trading platform
-   with GitHub Actions CI. Source of truth is GitHub Actions.                      
-                                                                                   
-  Steps each iteration:                                                            
-  1. Run pytest trading-engine/ dashboard-api/ -v for Python tests                 
-  2. Run cd frontend && npm test for JS tests (after package.json exists)          
-  3. Push changes: git add -A && git commit -m 'test: iteration N' && git push     
-  4. Check CI status: gh run list --limit 1 --json status,conclusion,name | head   
-  -20                                                                              
-  5. If CI shows conclusion='success', output SIGNAL                               
-  6. If tests fail locally, read error output and fix                              
-  7. If CI fails, run gh run view --log-failed to get CI error details             
-  8. Fix based on CI output (takes precedence over local)                          
-                                                                                   
-  Setup tasks (first iteration):                                                   
-  - Create trading-engine/tests/ with pytest config and conftest.py                
-  - Create dashboard-api/tests/ with pytest config and conftest.py                 
-  - Add pytest to both pyproject.toml files                                        
-  - Create frontend/package.json with vitest for JS testing                        
-  - Create frontend/tests/ directory with test files                               
-  - Create .github/workflows/test.yml for CI                                       
-  - Mock Cloudflare APIs: D1 database, fetch, Headers, Response, Request           
-                                                                                   
-  Test targets:                                                                    
-  - trading-engine: calculate_rsi, run_sma_crossover logic, run_rsi_strategy logic,
-   run_momentum_strategy logic                                                     
-  - dashboard-api: Performance calculation (Sharpe ratio, max drawdown), CRUD route
-   handlers                                                                        
-  - frontend: api.js fetch functions, charts.js helper functions                   
-                                                                                   
-  Context:                                                                         
-  - Python Workers use Pyodide - test pure logic, mock js imports and env object   
-  - D1 queries use env.DB.prepare().bind().all/first/run() pattern                 
-  - Frontend is vanilla JS, no React - use vitest with jsdom                       
-  - Alpaca API calls should be mocked, not hit real endpoints                      
-  - CI environment: ubuntu-latest, Python 3.12, Node 20                            
-                                                                                   
-  Key files:                                                                       
-  - trading-engine/src/entry.py (strategies, RSI calculation)                      
-  - dashboard-api/src/entry.py (API routes, performance metrics)                   
-  - frontend/js/api.js, frontend/js/charts.js                                      
-  - .github/workflows/test.yml                                                     
-                                                                                   
-  CRITICAL: GitHub Actions 'test' workflow must show green check. Local passing is 
-  not sufficient. CI is the source of truth.                                       
-                                                                                   
-  Output SIGNAL when:                                                              
-  - gh run list --limit 1 shows conclusion='success' for the test workflow         
-  - At least 5 Python tests and 3 JS tests exist and pass                          
-                                                                                   
-  If stuck after 5 attempts on same error, try alternative approach or simplify    
-  test scope.
+Merge frontend static files into dashboard-api worker to create a single unified worker. Source of truth is the deployed worker responding correctly.
+
+Steps each iteration:
+1. Run local tests: cd dashboard-api && python3 -m pytest tests/ -v
+2. Run frontend tests: cd frontend && npm test
+3. Test worker locally if possible: cd dashboard-api && npx wrangler dev --local (manual verification)
+4. Push changes: git add -A && git commit -m 'feat: iteration N - merge frontend into worker' && git push
+5. Check CI: gh run list --limit 1 --json status,conclusion
+6. If CI passes, deploy: cd dashboard-api && npx wrangler deploy
+7. Verify deployment: curl -s https://dashboard-api.emily-cogsdill.workers.dev/ | head -20
+8. Verify API still works: curl -s https://dashboard-api.emily-cogsdill.workers.dev/api/algorithms | head -5
+9. If both return expected content (HTML for /, JSON for /api/*), output SIGNAL
+10. If errors, read output and fix
+
+Implementation tasks:
+1. Move frontend static assets into dashboard-api:
+  - Copy frontend/index.html, frontend/css/, frontend/js/ into dashboard-api/static/
+  - Do NOT copy node_modules, tests, package.json (keep those in frontend/ for testing)
+2. Update dashboard-api/src/entry.py to serve static files:
+  - For path / or /index.html: return index.html with Content-Type: text/html
+  - For path /css/*: return CSS files with Content-Type: text/css
+  - For path /js/*: return JS files with Content-Type: application/javascript
+  - For path /api/*: existing API handlers (keep current logic)
+  - For path /health: existing health check
+3. Embed static files in the worker:
+  - Option A: Use Cloudflare Workers Sites (wrangler.toml site config)
+  - Option B: Inline assets as Python strings/bytes (simpler for small files)
+  - Prefer Option A if it works with Python workers, else Option B
+4. Update frontend/js/api.js:
+  - Change API_BASE from absolute URL to relative: const API_BASE = '/api'
+  - This allows same-origin requests
+5. Update wrangler.toml if needed for static assets
+6. Keep frontend/ directory for vitest tests (don't delete package.json/vitest)
+
+Context:
+- dashboard-api is a Python Worker using Pyodide
+- Static files: index.html (~140 lines), styles.css (~6KB), 4 JS files
+- Python Workers may not support Workers Sites - check docs, may need to inline assets
+- D1 database binding must remain working
+- CORS headers can be simplified since frontend/API are same origin
+
+Key files:
+- dashboard-api/src/entry.py (add static file serving)
+- dashboard-api/wrangler.toml (may need site config)
+- frontend/js/api.js (change to relative URL)
+- New: dashboard-api/static/* (copied assets)
+
+CRITICAL: Worker must serve both HTML at / AND JSON at /api/algorithms. Both must work after deployment. Verify with curl.
+
+Output SIGNAL when:
+- curl https://dashboard-api.emily-cogsdill.workers.dev/ returns HTML containing 'Paper Trading Dashboard'
+- curl https://dashboard-api.emily-cogsdill.workers.dev/api/algorithms returns JSON with 'algorithms' key
+- CI tests pass
+
+If stuck after 3 attempts on Python Workers Sites config, fall back to inlining static assets as strings in Python code.

@@ -1,10 +1,12 @@
 """
 Dashboard API Worker
 REST API for the paper trading dashboard frontend.
+Serves both static frontend assets and API endpoints.
 """
 from js import fetch, Response, Headers, JSON, Request
 import json
 import uuid
+from static_assets import INDEX_HTML, STYLES_CSS, API_JS, CHARTS_JS, APP_JS
 
 
 async def on_fetch(request, env, ctx):
@@ -16,7 +18,7 @@ async def on_fetch(request, env, ctx):
     path = url.split("://")[1].split("/", 1)[1] if "://" in url else url
     path = "/" + path.split("?")[0] if path else "/"
 
-    # CORS headers
+    # CORS headers for API
     cors_headers = {
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
@@ -29,7 +31,38 @@ async def on_fetch(request, env, ctx):
         return Response.new("", headers=Headers.new(cors_headers.items()))
 
     try:
-        # Route handling
+        # Static file serving
+        if path == "/" or path == "" or path == "/index.html":
+            return Response.new(
+                INDEX_HTML,
+                headers=Headers.new({"Content-Type": "text/html; charset=utf-8"}.items())
+            )
+
+        if path == "/css/styles.css":
+            return Response.new(
+                STYLES_CSS,
+                headers=Headers.new({"Content-Type": "text/css; charset=utf-8"}.items())
+            )
+
+        if path == "/js/api.js":
+            return Response.new(
+                API_JS,
+                headers=Headers.new({"Content-Type": "application/javascript; charset=utf-8"}.items())
+            )
+
+        if path == "/js/charts.js":
+            return Response.new(
+                CHARTS_JS,
+                headers=Headers.new({"Content-Type": "application/javascript; charset=utf-8"}.items())
+            )
+
+        if path == "/js/app.js":
+            return Response.new(
+                APP_JS,
+                headers=Headers.new({"Content-Type": "application/javascript; charset=utf-8"}.items())
+            )
+
+        # API Route handling
         if path == "/api/algorithms" or path == "api/algorithms":
             if method == "GET":
                 return await list_algorithms(env, cors_headers)

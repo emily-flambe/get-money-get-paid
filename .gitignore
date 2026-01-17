@@ -1,0 +1,17 @@
+# Secrets
+.dev.vars
+.env
+*.env
+
+# Wrangler
+.wrangler/
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS
+.DS_Store

@@ -1,0 +1,14 @@
+{
+  "name": "paper-trading-frontend",
+  "version": "0.1.0",
+  "description": "Frontend dashboard for paper trading platform",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "vitest": "^1.2.0",
+    "jsdom": "^24.0.0"
+  }
+}

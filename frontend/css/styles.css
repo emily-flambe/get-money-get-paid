@@ -55,6 +55,17 @@ body {
     color: var(--primary);
 }
 
+.github-link {
+    color: var(--text-muted);
+    transition: color 0.2s;
+    display: flex;
+    align-items: center;
+}
+
+.github-link:hover {
+    color: var(--text);
+}
+
 .container {
     max-width: 1400px;
     margin: 0 auto;

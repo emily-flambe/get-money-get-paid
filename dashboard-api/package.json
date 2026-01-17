@@ -1,0 +1,16 @@
+{
+  "name": "get-money-get-paid",
+  "version": "1.0.0",
+  "description": "Paper trading dashboard API",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "test": "python3 -m pytest tests/ -v"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "wrangler": "^4.59.2"
+  }
+}

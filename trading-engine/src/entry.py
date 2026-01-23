@@ -6,7 +6,7 @@ from js import fetch, Response, Headers, JSON, Request, Object
 from pyodide.ffi import to_js, create_proxy
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 async def on_scheduled(event, env, ctx):
@@ -15,6 +15,11 @@ async def on_scheduled(event, env, ctx):
         # Check if market is open
         if not await is_market_open(env):
             return Response.new("Market closed, skipping")
+
+        # Check if we should create hourly snapshots (at the top of each hour)
+        now = datetime.now(timezone.utc)
+        if now.minute == 0:
+            await create_snapshots_for_all(env, trigger="hourly")
 
         # Get all enabled algorithms
         algorithms = await get_enabled_algorithms(env)
@@ -283,10 +288,32 @@ async def get_bars(symbol: str, limit: int, env) -> list:
         url = f"https://data.alpaca.markets/v2/stocks/{symbol}/bars?timeframe=1Day&limit={limit}&feed=iex"
         response = await alpaca_fetch(url, env)
         data = json.loads(await response.text())
-        return data.get("bars", []) or []
+        bars = data.get("bars", []) or []
+
+        # If bars empty (market closed), try latest trade as fallback
+        if not bars:
+            latest = await get_latest_price(symbol, env)
+            if latest > 0:
+                # Create a synthetic bar with the latest price
+                bars = [{"c": latest, "o": latest, "h": latest, "l": latest, "v": 0}]
+
+        return bars
     except Exception as e:
         print(f"Error fetching bars for {symbol}: {e}")
         return []
+
+
+async def get_latest_price(symbol: str, env) -> float:
+    """Get latest trade price from Alpaca (works when market is closed)"""
+    try:
+        url = f"https://data.alpaca.markets/v2/stocks/{symbol}/trades/latest"
+        response = await alpaca_fetch(url, env)
+        data = json.loads(await response.text())
+        trade = data.get("trade", {})
+        return float(trade.get("p", 0)) if trade else 0
+    except Exception as e:
+        print(f"Error fetching latest price for {symbol}: {e}")
+        return 0
 
 
 async def get_position(algorithm_id: str, symbol: str, env):
@@ -374,6 +401,9 @@ async def submit_order(algo, symbol, side, quantity_or_pct, env, notes=""):
         else:
             await update_position_sell(algo["id"], symbol, quantity, env)
 
+        # Create snapshot after trade
+        await create_snapshot(algo["id"], env, trigger="trade")
+
         print(f"Order submitted: {side} {quantity} {symbol} for {algo['name']}")
 
     except Exception as e:
@@ -384,7 +414,15 @@ async def update_position_buy(algorithm_id, symbol, quantity, order_result, env)
     """Update or create position after buy"""
     try:
         existing = await get_position(algorithm_id, symbol, env)
-        fill_price = float(order_result.get("filled_avg_price", 0)) or 0
+
+        # Get fill price from order, or estimate from current market price
+        fill_price_raw = order_result.get("filled_avg_price")
+        if fill_price_raw is not None:
+            fill_price = float(fill_price_raw)
+        else:
+            # Order not filled yet (market closed) - use current price as estimate
+            bars = await get_bars(symbol, 1, env)
+            fill_price = bars[-1]["c"] if bars else 0
 
         if existing:
             new_qty = existing["quantity"] + quantity
@@ -424,6 +462,86 @@ async def update_position_sell(algorithm_id, symbol, quantity, env):
                 """).bind(new_qty, algorithm_id, symbol).run()
     except Exception as e:
         print(f"Error updating position: {e}")
+
+
+async def create_snapshot(algorithm_id: str, env, trigger: str = "trade"):
+    """Create a snapshot of algorithm's current equity state"""
+    try:
+        # Get all positions for this algorithm
+        result = await env.DB.prepare(
+            "SELECT * FROM positions WHERE algorithm_id = ?"
+        ).bind(algorithm_id).all()
+
+        positions_list = []
+        results = js_to_py(result.results)
+
+        total_equity = 0.0
+        total_cost_basis = 0.0
+
+        for row in results:
+            pos = js_to_py(row) if hasattr(row, 'to_py') else dict(row)
+            symbol = pos["symbol"]
+            quantity = float(pos["quantity"])
+            avg_entry = float(pos["avg_entry_price"]) if pos.get("avg_entry_price") else 0
+
+            # Get current price
+            bars = await get_bars(symbol, 1, env)
+            current_price = bars[-1]["c"] if bars else avg_entry
+
+            market_value = quantity * current_price
+            cost_basis = quantity * avg_entry
+            unrealized_pnl = market_value - cost_basis
+
+            total_equity += market_value
+            total_cost_basis += cost_basis
+
+            positions_list.append({
+                "symbol": symbol,
+                "quantity": quantity,
+                "avg_entry_price": avg_entry,
+                "current_price": current_price,
+                "market_value": round(market_value, 2),
+                "unrealized_pnl": round(unrealized_pnl, 2)
+            })
+
+        total_pnl = total_equity - total_cost_basis
+
+        # Get today's date for snapshot_date field
+        now = datetime.utcnow()
+        snapshot_date = now.strftime("%Y-%m-%d")
+
+        # Insert snapshot
+        snapshot_id = str(uuid.uuid4())
+        await env.DB.prepare("""
+            INSERT INTO snapshots (id, algorithm_id, snapshot_date, equity, cash, buying_power, daily_pnl, total_pnl, positions)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """).bind(
+            snapshot_id,
+            algorithm_id,
+            snapshot_date,
+            round(total_equity, 2),
+            0,  # cash - not tracked per-algorithm
+            0,  # buying_power - shared across algorithms
+            0,  # daily_pnl - would need previous day's snapshot to calculate
+            round(total_pnl, 2),
+            json.dumps(positions_list)
+        ).run()
+
+        print(f"Snapshot created for algorithm {algorithm_id}: equity=${total_equity:.2f}, trigger={trigger}")
+
+    except Exception as e:
+        print(f"Error creating snapshot: {e}")
+
+
+async def create_snapshots_for_all(env, trigger: str = "hourly"):
+    """Create snapshots for all enabled algorithms"""
+    try:
+        algorithms = await get_enabled_algorithms(env)
+        for algo in algorithms:
+            await create_snapshot(algo["id"], env, trigger)
+        print(f"Created {len(algorithms)} snapshots (trigger={trigger})")
+    except Exception as e:
+        print(f"Error creating snapshots for all: {e}")
 
 
 def get_alpaca_headers(env):

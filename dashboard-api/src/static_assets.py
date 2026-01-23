@@ -264,6 +264,8 @@ body {
     border-radius: 0.5rem;
     border: 1px solid var(--border);
     margin-bottom: 2rem;
+    height: 400px;
+    position: relative;
 }
 
 .chart-container h2 {

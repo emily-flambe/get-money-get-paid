@@ -28,7 +28,7 @@ CREATE TABLE trades (
     FOREIGN KEY (algorithm_id) REFERENCES algorithms(id)
 );
 
--- Daily portfolio snapshots for each algorithm
+-- Portfolio snapshots for each algorithm (hourly + after trades)
 CREATE TABLE snapshots (
     id TEXT PRIMARY KEY,
     algorithm_id TEXT NOT NULL,
@@ -40,8 +40,7 @@ CREATE TABLE snapshots (
     total_pnl REAL,
     positions JSON,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (algorithm_id) REFERENCES algorithms(id),
-    UNIQUE(algorithm_id, snapshot_date)
+    FOREIGN KEY (algorithm_id) REFERENCES algorithms(id)
 );
 
 -- Current positions per algorithm
@@ -69,5 +68,5 @@ CREATE TABLE system_state (
 -- Indexes
 CREATE INDEX idx_trades_algorithm ON trades(algorithm_id);
 CREATE INDEX idx_trades_submitted ON trades(submitted_at);
-CREATE INDEX idx_snapshots_algorithm_date ON snapshots(algorithm_id, snapshot_date);
+CREATE INDEX idx_snapshots_algorithm_timestamp ON snapshots(algorithm_id, created_at);
 CREATE INDEX idx_positions_algorithm ON positions(algorithm_id);

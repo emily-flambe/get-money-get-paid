@@ -7,6 +7,7 @@ CREATE TABLE algorithms (
     config JSON NOT NULL,
     symbols JSON NOT NULL,
     enabled INTEGER DEFAULT 1,
+    cash REAL NOT NULL DEFAULT 1000,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP
 );

@@ -340,26 +340,60 @@ async def get_account(env) -> dict:
         return {}
 
 
+async def get_algorithm_cash(algorithm_id: str, env) -> float:
+    """Get algorithm's available cash from D1"""
+    try:
+        result = await env.DB.prepare(
+            "SELECT cash FROM algorithms WHERE id = ?"
+        ).bind(algorithm_id).first()
+        if not result:
+            return 0.0
+        row = js_to_py(result) if hasattr(result, 'to_py') else dict(result)
+        return float(row.get("cash", 0))
+    except Exception as e:
+        print(f"Error fetching algorithm cash: {e}")
+        return 0.0
+
+
+async def update_algorithm_cash(algorithm_id: str, new_cash: float, env):
+    """Update algorithm's cash balance in D1"""
+    try:
+        await env.DB.prepare(
+            "UPDATE algorithms SET cash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+        ).bind(new_cash, algorithm_id).run()
+    except Exception as e:
+        print(f"Error updating algorithm cash: {e}")
+
+
 async def submit_order(algo, symbol, side, quantity_or_pct, env, notes=""):
     """Submit order to Alpaca and log to D1"""
     try:
-        account = await get_account(env)
-        buying_power = float(account.get("buying_power", 0))
+        # Get algorithm's available cash
+        algorithm_cash = await get_algorithm_cash(algo["id"], env)
+
+        # Get current price for quantity calculations
+        bars = await get_bars(symbol, 1, env)
+        if not bars:
+            return
+        current_price = bars[-1]["c"]
 
         # Calculate quantity
         if side == "buy" and isinstance(quantity_or_pct, float) and quantity_or_pct <= 1:
-            # Position size as percentage of buying power
-            bars = await get_bars(symbol, 1, env)
-            if not bars:
-                return
-            current_price = bars[-1]["c"]
-            dollar_amount = buying_power * quantity_or_pct
+            # Position size as percentage of algorithm's cash
+            dollar_amount = algorithm_cash * quantity_or_pct
             quantity = int(dollar_amount / current_price)
         else:
             quantity = int(quantity_or_pct)
 
         if quantity <= 0:
             return
+
+        # For BUY: Check if algorithm has enough cash
+        if side == "buy":
+            estimated_cost = quantity * current_price
+            if estimated_cost > algorithm_cash:
+                print(f"Insufficient cash for {algo['name']}: need ${estimated_cost:.2f}, have ${algorithm_cash:.2f}")
+                return
 
         # Submit order to Alpaca
         order_data = {
@@ -399,7 +433,7 @@ async def submit_order(algo, symbol, side, quantity_or_pct, env, notes=""):
         if side == "buy":
             await update_position_buy(algo["id"], symbol, quantity, result, env)
         else:
-            await update_position_sell(algo["id"], symbol, quantity, env)
+            await update_position_sell(algo["id"], symbol, quantity, result, current_price, env)
 
         # Create snapshot after trade
         await create_snapshot(algo["id"], env, trigger="trade")
@@ -411,7 +445,7 @@ async def submit_order(algo, symbol, side, quantity_or_pct, env, notes=""):
 
 
 async def update_position_buy(algorithm_id, symbol, quantity, order_result, env):
-    """Update or create position after buy"""
+    """Update or create position after buy and deduct cash"""
     try:
         existing = await get_position(algorithm_id, symbol, env)
 
@@ -441,12 +475,20 @@ async def update_position_buy(algorithm_id, symbol, quantity, order_result, env)
                 INSERT INTO positions (id, algorithm_id, symbol, quantity, avg_entry_price)
                 VALUES (?, ?, ?, ?, ?)
             """).bind(position_id, algorithm_id, symbol, quantity, fill_price).run()
+
+        # Deduct cost from algorithm's cash
+        cost = quantity * fill_price
+        current_cash = await get_algorithm_cash(algorithm_id, env)
+        new_cash = current_cash - cost
+        await update_algorithm_cash(algorithm_id, new_cash, env)
+        print(f"Deducted ${cost:.2f} from algorithm {algorithm_id}, new cash: ${new_cash:.2f}")
+
     except Exception as e:
         print(f"Error updating position: {e}")
 
 
-async def update_position_sell(algorithm_id, symbol, quantity, env):
-    """Update or remove position after sell"""
+async def update_position_sell(algorithm_id, symbol, quantity, order_result, current_price, env):
+    """Update or remove position after sell and add proceeds to cash"""
     try:
         existing = await get_position(algorithm_id, symbol, env)
         if existing:
@@ -460,6 +502,21 @@ async def update_position_sell(algorithm_id, symbol, quantity, env):
                     UPDATE positions SET quantity = ?, updated_at = CURRENT_TIMESTAMP
                     WHERE algorithm_id = ? AND symbol = ?
                 """).bind(new_qty, algorithm_id, symbol).run()
+
+            # Get fill price from order, or use current price as estimate
+            fill_price_raw = order_result.get("filled_avg_price")
+            if fill_price_raw is not None:
+                fill_price = float(fill_price_raw)
+            else:
+                fill_price = current_price
+
+            # Add proceeds to algorithm's cash
+            proceeds = quantity * fill_price
+            algo_cash = await get_algorithm_cash(algorithm_id, env)
+            new_cash = algo_cash + proceeds
+            await update_algorithm_cash(algorithm_id, new_cash, env)
+            print(f"Added ${proceeds:.2f} to algorithm {algorithm_id}, new cash: ${new_cash:.2f}")
+
     except Exception as e:
         print(f"Error updating position: {e}")
 
@@ -467,6 +524,9 @@ async def update_position_sell(algorithm_id, symbol, quantity, env):
 async def create_snapshot(algorithm_id: str, env, trigger: str = "trade"):
     """Create a snapshot of algorithm's current equity state"""
     try:
+        # Get algorithm's cash balance
+        algorithm_cash = await get_algorithm_cash(algorithm_id, env)
+
         # Get all positions for this algorithm
         result = await env.DB.prepare(
             "SELECT * FROM positions WHERE algorithm_id = ?"
@@ -475,7 +535,7 @@ async def create_snapshot(algorithm_id: str, env, trigger: str = "trade"):
         positions_list = []
         results = js_to_py(result.results)
 
-        total_equity = 0.0
+        total_position_value = 0.0
         total_cost_basis = 0.0
 
         for row in results:
@@ -492,7 +552,7 @@ async def create_snapshot(algorithm_id: str, env, trigger: str = "trade"):
             cost_basis = quantity * avg_entry
             unrealized_pnl = market_value - cost_basis
 
-            total_equity += market_value
+            total_position_value += market_value
             total_cost_basis += cost_basis
 
             positions_list.append({
@@ -504,6 +564,8 @@ async def create_snapshot(algorithm_id: str, env, trigger: str = "trade"):
                 "unrealized_pnl": round(unrealized_pnl, 2)
             })
 
+        # Total equity = cash + position market values
+        total_equity = algorithm_cash + total_position_value
         total_pnl = total_equity - total_cost_basis
 
         # Get today's date for snapshot_date field
@@ -520,14 +582,14 @@ async def create_snapshot(algorithm_id: str, env, trigger: str = "trade"):
             algorithm_id,
             snapshot_date,
             round(total_equity, 2),
-            0,  # cash - not tracked per-algorithm
-            0,  # buying_power - shared across algorithms
+            round(algorithm_cash, 2),
+            round(algorithm_cash, 2),  # buying_power = cash for algorithm-level tracking
             0,  # daily_pnl - would need previous day's snapshot to calculate
             round(total_pnl, 2),
             json.dumps(positions_list)
         ).run()
 
-        print(f"Snapshot created for algorithm {algorithm_id}: equity=${total_equity:.2f}, trigger={trigger}")
+        print(f"Snapshot created for algorithm {algorithm_id}: equity=${total_equity:.2f}, cash=${algorithm_cash:.2f}, trigger={trigger}")
 
     except Exception as e:
         print(f"Error creating snapshot: {e}")

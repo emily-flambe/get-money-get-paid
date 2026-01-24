@@ -6,6 +6,7 @@ Serves both static frontend assets and API endpoints.
 from js import fetch, Response, Headers, JSON, Request
 import json
 import uuid
+import datetime
 from static_assets import INDEX_HTML, STYLES_CSS, API_JS, CHARTS_JS, APP_JS
 
 
@@ -100,6 +101,9 @@ async def on_fetch(request, env, ctx):
         elif path == "/api/account" or path == "api/account":
             return await get_account(env, cors_headers)
 
+        elif path == "/api/settings" or path == "api/settings":
+            return await get_settings(env, cors_headers)
+
         elif path == "/health" or path == "health":
             return Response.new(
                 json.dumps({"status": "ok"}),
@@ -138,6 +142,17 @@ async def list_algorithms(env, cors_headers):
         algo = js_to_py(row) if hasattr(row, 'to_py') else dict(row)
         algo["config"] = json.loads(algo["config"]) if isinstance(algo["config"], str) else algo["config"]
         algo["symbols"] = json.loads(algo["symbols"]) if isinstance(algo["symbols"], str) else algo["symbols"]
+
+        # Get latest snapshot cash for this algorithm
+        latest_snapshot = await env.DB.prepare("""
+            SELECT cash FROM snapshots WHERE algorithm_id = ? ORDER BY snapshot_date DESC LIMIT 1
+        """).bind(algo["id"]).first()
+        if latest_snapshot:
+            snap_data = js_to_py(latest_snapshot) if hasattr(latest_snapshot, 'to_py') else dict(latest_snapshot)
+            algo["cash"] = snap_data.get("cash", 0)
+        else:
+            algo["cash"] = 0
+
         algorithms.append(algo)
 
     return Response.new(
@@ -149,6 +164,16 @@ async def list_algorithms(env, cors_headers):
 async def create_algorithm(data, env, cors_headers):
     """POST /api/algorithms - Create new algorithm"""
     algo_id = str(uuid.uuid4())
+
+    # Get default starting balance from system_state (default 1000 if not set)
+    starting_balance_result = await env.DB.prepare("""
+        SELECT value FROM system_state WHERE key = 'default_starting_balance'
+    """).first()
+    if starting_balance_result:
+        sb_data = js_to_py(starting_balance_result) if hasattr(starting_balance_result, 'to_py') else dict(starting_balance_result)
+        starting_balance = float(sb_data.get("value", 1000))
+    else:
+        starting_balance = 1000.0
 
     await env.DB.prepare("""
         INSERT INTO algorithms (id, name, description, strategy_type, config, symbols, enabled)
@@ -163,8 +188,24 @@ async def create_algorithm(data, env, cors_headers):
         1 if data.get("enabled", True) else 0
     ).run()
 
+    # Create initial snapshot with starting balance
+    snapshot_id = str(uuid.uuid4())
+    snapshot_date = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    await env.DB.prepare("""
+        INSERT INTO snapshots (id, algorithm_id, snapshot_date, equity, cash, positions)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """).bind(
+        snapshot_id,
+        algo_id,
+        snapshot_date,
+        starting_balance,
+        starting_balance,
+        json.dumps([])
+    ).run()
+
     return Response.new(
-        json.dumps({"id": algo_id, "message": "Algorithm created"}),
+        json.dumps({"id": algo_id, "message": "Algorithm created", "starting_balance": starting_balance}),
         status=201,
         headers=Headers.new(cors_headers.items())
     )
@@ -301,6 +342,7 @@ async def get_algorithm_performance(algo_id, env, cors_headers):
                 "algorithm_id": algo_id,
                 "initial_equity": 0,
                 "final_equity": 0,
+                "current_cash": 0,
                 "total_return_pct": 0,
                 "sharpe_ratio": 0,
                 "max_drawdown_pct": 0,
@@ -313,7 +355,31 @@ async def get_algorithm_performance(algo_id, env, cors_headers):
     snapshots_list = [js_to_py(s) if hasattr(s, 'to_py') else dict(s) for s in results]
 
     initial_equity = snapshots_list[0]["equity"]
-    final_equity = snapshots_list[-1]["equity"]
+    initial_cash = snapshots_list[0].get("cash", initial_equity)
+
+    # Get current cash from latest snapshot
+    latest_snap = snapshots_list[-1]
+    current_cash = latest_snap.get("cash", 0)
+
+    # Get current positions and calculate total position market value
+    positions_result = await env.DB.prepare("""
+        SELECT quantity, avg_entry_price, market_value FROM positions WHERE algorithm_id = ?
+    """).bind(algo_id).all()
+    positions_list = js_to_py(positions_result.results)
+    total_position_value = 0
+    for pos in positions_list:
+        pos_dict = js_to_py(pos) if hasattr(pos, 'to_py') else dict(pos)
+        # Use market_value if set, otherwise calculate from quantity * avg_entry_price
+        market_val = pos_dict.get("market_value")
+        if market_val is None or market_val == 0:
+            qty = pos_dict.get("quantity") or 0
+            price = pos_dict.get("avg_entry_price") or 0
+            market_val = qty * price
+        total_position_value += market_val
+
+    # Calculate current equity = cash + sum of position market values
+    final_equity = current_cash + total_position_value
+
     total_return = ((final_equity - initial_equity) / initial_equity * 100) if initial_equity > 0 else 0
 
     # Daily returns for Sharpe ratio
@@ -356,6 +422,7 @@ async def get_algorithm_performance(algo_id, env, cors_headers):
             "algorithm_id": algo_id,
             "initial_equity": round(initial_equity, 2),
             "final_equity": round(final_equity, 2),
+            "current_cash": round(current_cash, 2),
             "total_return_pct": round(total_return, 2),
             "sharpe_ratio": round(sharpe_ratio, 2),
             "max_drawdown_pct": round(max_drawdown * 100, 2),
@@ -415,3 +482,24 @@ async def get_account(env, cors_headers):
             status=500,
             headers=Headers.new(cors_headers.items())
         )
+
+
+async def get_settings(env, cors_headers):
+    """GET /api/settings - Get system settings"""
+    # Get default starting balance from system_state
+    starting_balance_result = await env.DB.prepare("""
+        SELECT value FROM system_state WHERE key = 'default_starting_balance'
+    """).first()
+
+    if starting_balance_result:
+        sb_data = js_to_py(starting_balance_result) if hasattr(starting_balance_result, 'to_py') else dict(starting_balance_result)
+        default_starting_balance = float(sb_data.get("value", 1000))
+    else:
+        default_starting_balance = 1000.0
+
+    return Response.new(
+        json.dumps({
+            "default_starting_balance": default_starting_balance
+        }),
+        headers=Headers.new(cors_headers.items())
+    )

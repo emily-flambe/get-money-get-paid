@@ -16,6 +16,11 @@ INDEX_HTML = '''<!DOCTYPE html>
 <body>
     <nav class="navbar">
         <h1>Paper Trading Dashboard</h1>
+        <button class="hamburger" aria-label="Toggle menu" aria-expanded="false">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
         <div class="nav-links">
             <a href="#" class="nav-link active" data-page="dashboard">Dashboard</a>
             <a href="#" class="nav-link" data-page="algorithms">Algorithms</a>
@@ -543,6 +548,201 @@ th {
 .status-rejected {
     color: var(--danger);
 }
+
+/* Hamburger Menu */
+.hamburger {
+    display: none;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 24px;
+    height: 18px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    z-index: 1001;
+}
+
+.hamburger span {
+    display: block;
+    width: 100%;
+    height: 2px;
+    background: var(--text);
+    transition: transform 0.3s, opacity 0.3s;
+}
+
+.hamburger.active span:nth-child(1) {
+    transform: translateY(8px) rotate(45deg);
+}
+
+.hamburger.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.hamburger.active span:nth-child(3) {
+    transform: translateY(-8px) rotate(-45deg);
+}
+
+/* Table wrapper for mobile scroll */
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+    .hamburger {
+        display: flex;
+    }
+
+    .navbar {
+        padding: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .navbar h1 {
+        font-size: 1.25rem;
+        flex: 1;
+    }
+
+    .nav-links {
+        display: none;
+        flex-direction: column;
+        width: 100%;
+        gap: 0;
+        margin-top: 1rem;
+        border-top: 1px solid var(--border);
+        padding-top: 1rem;
+    }
+
+    .nav-links.active {
+        display: flex;
+    }
+
+    .nav-link {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .nav-link:last-of-type {
+        border-bottom: none;
+    }
+
+    .github-link {
+        padding: 0.75rem 0;
+        justify-content: flex-start;
+    }
+
+    .container {
+        padding: 1rem;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+
+    .stat-card {
+        padding: 1rem;
+    }
+
+    .stat-card p {
+        font-size: 1.5rem;
+    }
+
+    .chart-container,
+    .comparison-chart-container {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .chart-container h2,
+    .recent-trades h2 {
+        font-size: 1.1rem;
+    }
+
+    .recent-trades {
+        padding: 1rem;
+    }
+
+    th, td {
+        padding: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .page-header h2 {
+        font-size: 1.25rem;
+    }
+
+    .algorithms-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .algorithm-card {
+        padding: 1rem;
+    }
+
+    .algorithm-card .actions {
+        flex-wrap: wrap;
+    }
+
+    .modal-content {
+        margin: 1rem;
+        padding: 1.5rem;
+        max-width: calc(100% - 2rem);
+        max-height: calc(100vh - 2rem);
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .form-actions .btn {
+        width: 100%;
+    }
+
+    #comparison-table {
+        display: block;
+        overflow-x: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stat-card p {
+        font-size: 1.25rem;
+    }
+
+    .navbar h1 {
+        font-size: 1.1rem;
+    }
+
+    th, td {
+        padding: 0.4rem;
+        font-size: 0.8rem;
+    }
+
+    .btn {
+        padding: 0.6rem 1rem;
+        font-size: 0.875rem;
+    }
+
+    .btn-sm {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.75rem;
+    }
+}
 '''
 
 API_JS = '''// API Client for Paper Trading Dashboard
@@ -784,6 +984,7 @@ APP_JS = '''// Main application logic for Paper Trading Dashboard
 
 document.addEventListener('DOMContentLoaded', () => {
     initNavigation();
+    initHamburgerMenu();
     initModal();
     initAlgorithmForm();
     loadDashboard();
@@ -800,8 +1001,32 @@ function initNavigation() {
 
             navLinks.forEach(l => l.classList.remove('active'));
             link.classList.add('active');
+
+            // Close mobile menu on navigation
+            const hamburger = document.querySelector('.hamburger');
+            const navLinksContainer = document.querySelector('.nav-links');
+            if (hamburger && navLinksContainer) {
+                hamburger.classList.remove('active');
+                hamburger.setAttribute('aria-expanded', 'false');
+                navLinksContainer.classList.remove('active');
+            }
         });
     });
+}
+
+// Hamburger Menu
+function initHamburgerMenu() {
+    const hamburger = document.querySelector('.hamburger');
+    const navLinks = document.querySelector('.nav-links');
+
+    if (hamburger && navLinks) {
+        hamburger.addEventListener('click', () => {
+            hamburger.classList.toggle('active');
+            navLinks.classList.toggle('active');
+            const isExpanded = hamburger.classList.contains('active');
+            hamburger.setAttribute('aria-expanded', isExpanded);
+        });
+    }
 }
 
 function showPage(pageName) {

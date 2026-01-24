@@ -2,6 +2,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     initNavigation();
+    initHamburgerMenu();
     initModal();
     initAlgorithmForm();
     loadDashboard();
@@ -18,8 +19,32 @@ function initNavigation() {
 
             navLinks.forEach(l => l.classList.remove('active'));
             link.classList.add('active');
+
+            // Close mobile menu on navigation
+            const hamburger = document.querySelector('.hamburger');
+            const navLinksContainer = document.querySelector('.nav-links');
+            if (hamburger && navLinksContainer) {
+                hamburger.classList.remove('active');
+                hamburger.setAttribute('aria-expanded', 'false');
+                navLinksContainer.classList.remove('active');
+            }
         });
     });
+}
+
+// Hamburger Menu
+function initHamburgerMenu() {
+    const hamburger = document.querySelector('.hamburger');
+    const navLinks = document.querySelector('.nav-links');
+
+    if (hamburger && navLinks) {
+        hamburger.addEventListener('click', () => {
+            hamburger.classList.toggle('active');
+            navLinks.classList.toggle('active');
+            const isExpanded = hamburger.classList.contains('active');
+            hamburger.setAttribute('aria-expanded', isExpanded);
+        });
+    }
 }
 
 function showPage(pageName) {

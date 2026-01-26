@@ -5,16 +5,42 @@
 }
 
 :root {
-    --primary: #3b82f6;
-    --primary-dark: #2563eb;
-    --success: #10b981;
+    /* Sunset Warm - Dark Mode (default) */
+    --primary: #f97316;
+    --primary-dark: #ea580c;
+    --secondary: #ec4899;
+    --accent: #fbbf24;
+    --success: #22c55e;
     --warning: #f59e0b;
-    --danger: #ef4444;
-    --bg: #0f172a;
-    --bg-card: #1e293b;
-    --text: #f8fafc;
-    --text-muted: #94a3b8;
-    --border: #334155;
+    --danger: #dc2626;
+    --bg: #1c1520;
+    --bg-card: #2a2030;
+    --text: #fef3e2;
+    --text-muted: #c4a98f;
+    --border: #3d2f40;
+
+    /* Gradient accents for sunset feel */
+    --gradient-sunset: linear-gradient(135deg, #f97316 0%, #ec4899 50%, #fbbf24 100%);
+    --gradient-warm: linear-gradient(180deg, #2a2030 0%, #1c1520 100%);
+}
+
+[data-theme="light"] {
+    /* Sunset Warm - Light Mode */
+    --primary: #ea580c;
+    --primary-dark: #c2410c;
+    --secondary: #db2777;
+    --accent: #d97706;
+    --success: #16a34a;
+    --warning: #d97706;
+    --danger: #b91c1c;
+    --bg: #fef7ed;
+    --bg-card: #fff7ed;
+    --text: #431407;
+    --text-muted: #9a3412;
+    --border: #fed7aa;
+
+    --gradient-sunset: linear-gradient(135deg, #ea580c 0%, #db2777 50%, #d97706 100%);
+    --gradient-warm: linear-gradient(180deg, #fff7ed 0%, #fef7ed 100%);
 }
 
 body {
@@ -31,11 +57,26 @@ body {
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid var(--border);
+    position: relative;
+}
+
+.navbar::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--gradient-sunset);
+    opacity: 0.6;
 }
 
 .navbar h1 {
     font-size: 1.5rem;
-    color: var(--primary);
+    background: var(--gradient-sunset);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .nav-links {
@@ -63,7 +104,7 @@ body {
 }
 
 .github-link:hover {
-    color: var(--text);
+    color: var(--accent);
 }
 
 .container {
@@ -92,6 +133,18 @@ body {
     padding: 1.5rem;
     border-radius: 0.5rem;
     border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--gradient-sunset);
 }
 
 .stat-card h3 {
@@ -104,6 +157,7 @@ body {
 .stat-card p {
     font-size: 2rem;
     font-weight: 700;
+    color: var(--text);
 }
 
 .chart-container {
@@ -123,6 +177,7 @@ body {
 .chart-container h2 {
     margin-bottom: 1rem;
     font-size: 1.25rem;
+    color: var(--accent);
 }
 
 .recent-trades {
@@ -135,6 +190,7 @@ body {
 .recent-trades h2 {
     margin-bottom: 1rem;
     font-size: 1.25rem;
+    color: var(--accent);
 }
 
 table {
@@ -161,13 +217,17 @@ th {
     margin-bottom: 2rem;
 }
 
+.page-header h2 {
+    color: var(--accent);
+}
+
 .btn {
     padding: 0.75rem 1.5rem;
     border-radius: 0.375rem;
     border: none;
     font-weight: 500;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.2s;
 }
 
 .btn-primary {
@@ -177,6 +237,7 @@ th {
 
 .btn-primary:hover {
     background: var(--primary-dark);
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
 }
 
 .btn-secondary {
@@ -191,6 +252,10 @@ th {
 .btn-danger {
     background: var(--danger);
     color: white;
+}
+
+.btn-danger:hover {
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
 }
 
 .btn-sm {
@@ -209,6 +274,12 @@ th {
     padding: 1.5rem;
     border-radius: 0.5rem;
     border: 1px solid var(--border);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.algorithm-card:hover {
+    border-color: var(--primary);
+    box-shadow: 0 4px 20px rgba(249, 115, 22, 0.15);
 }
 
 .algorithm-card h3 {
@@ -216,10 +287,11 @@ th {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    color: var(--text);
 }
 
 .algorithm-card .strategy-type {
-    color: var(--text-muted);
+    color: var(--secondary);
     font-size: 0.875rem;
     margin-bottom: 1rem;
 }
@@ -236,6 +308,8 @@ th {
     padding: 0.25rem 0.5rem;
     border-radius: 0.25rem;
     font-size: 0.75rem;
+    color: var(--accent);
+    border: 1px solid var(--accent);
 }
 
 .algorithm-card .actions {
@@ -291,7 +365,7 @@ th {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(28, 21, 32, 0.85);
     justify-content: center;
     align-items: center;
     z-index: 1000;
@@ -309,10 +383,13 @@ th {
     max-width: 500px;
     max-height: 90vh;
     overflow-y: auto;
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 32px rgba(249, 115, 22, 0.2);
 }
 
 .modal-content h2 {
     margin-bottom: 1.5rem;
+    color: var(--accent);
 }
 
 .close {
@@ -323,7 +400,7 @@ th {
 }
 
 .close:hover {
-    color: var(--text);
+    color: var(--primary);
 }
 
 .form-group {
@@ -354,6 +431,7 @@ th {
 .form-group select:focus {
     outline: none;
     border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.2);
 }
 
 .form-actions {

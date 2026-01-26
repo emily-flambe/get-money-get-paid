@@ -5,16 +5,53 @@
 }
 
 :root {
-    --primary: #3b82f6;
-    --primary-dark: #2563eb;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --danger: #ef4444;
-    --bg: #0f172a;
-    --bg-card: #1e293b;
-    --text: #f8fafc;
-    --text-muted: #94a3b8;
-    --border: #334155;
+    /* Cyberpunk Neon Dark Mode (default) */
+    --primary: #ff00ff;
+    --primary-dark: #cc00cc;
+    --primary-glow: 0 0 10px #ff00ff, 0 0 20px #ff00ff40;
+    --secondary: #00ffff;
+    --secondary-glow: 0 0 10px #00ffff, 0 0 20px #00ffff40;
+    --accent: #39ff14;
+    --accent-glow: 0 0 10px #39ff14, 0 0 20px #39ff1440;
+    --success: #00ff88;
+    --success-glow: 0 0 8px #00ff88;
+    --warning: #ffcc00;
+    --warning-glow: 0 0 8px #ffcc00;
+    --danger: #ff3366;
+    --danger-glow: 0 0 8px #ff3366;
+    --bg: #0a0a12;
+    --bg-card: #12121f;
+    --bg-elevated: #1a1a2e;
+    --text: #f0f0ff;
+    --text-muted: #8888aa;
+    --border: #2a2a4a;
+    --border-glow: #ff00ff30;
+    --card-glow: 0 0 15px #ff00ff20, 0 0 30px #00ffff10;
+}
+
+[data-theme="light"] {
+    /* Cyberpunk Light Mode */
+    --primary: #cc00cc;
+    --primary-dark: #990099;
+    --primary-glow: 0 0 8px #cc00cc60;
+    --secondary: #0099aa;
+    --secondary-glow: 0 0 8px #0099aa60;
+    --accent: #2eb810;
+    --accent-glow: 0 0 8px #2eb81060;
+    --success: #00aa66;
+    --success-glow: 0 0 6px #00aa6660;
+    --warning: #cc9900;
+    --warning-glow: 0 0 6px #cc990060;
+    --danger: #cc2244;
+    --danger-glow: 0 0 6px #cc224460;
+    --bg: #e8e0f0;
+    --bg-card: #f5f0fa;
+    --bg-elevated: #ffffff;
+    --text: #1a1a2e;
+    --text-muted: #6666aa;
+    --border: #c0b0d0;
+    --border-glow: #cc00cc20;
+    --card-glow: 0 0 10px #cc00cc15, 0 0 20px #0099aa10;
 }
 
 body {
@@ -31,11 +68,16 @@ body {
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid var(--border);
+    box-shadow: 0 2px 20px var(--border-glow);
 }
 
 .navbar h1 {
     font-size: 1.5rem;
     color: var(--primary);
+    text-shadow: var(--primary-glow);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
 }
 
 .nav-links {
@@ -47,23 +89,28 @@ body {
     color: var(--text-muted);
     text-decoration: none;
     font-weight: 500;
-    transition: color 0.2s;
+    transition: color 0.2s, text-shadow 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.875rem;
 }
 
 .nav-link:hover,
 .nav-link.active {
-    color: var(--primary);
+    color: var(--secondary);
+    text-shadow: var(--secondary-glow);
 }
 
 .github-link {
     color: var(--text-muted);
-    transition: color 0.2s;
+    transition: color 0.2s, filter 0.2s;
     display: flex;
     align-items: center;
 }
 
 .github-link:hover {
-    color: var(--text);
+    color: var(--accent);
+    filter: drop-shadow(0 0 6px var(--accent));
 }
 
 .container {
@@ -92,6 +139,13 @@ body {
     padding: 1.5rem;
     border-radius: 0.5rem;
     border: 1px solid var(--border);
+    box-shadow: var(--card-glow);
+    transition: box-shadow 0.3s, border-color 0.3s;
+}
+
+.stat-card:hover {
+    border-color: var(--primary);
+    box-shadow: var(--card-glow), 0 0 20px var(--border-glow);
 }
 
 .stat-card h3 {
@@ -99,11 +153,15 @@ body {
     font-size: 0.875rem;
     font-weight: 500;
     margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .stat-card p {
     font-size: 2rem;
     font-weight: 700;
+    color: var(--secondary);
+    text-shadow: var(--secondary-glow);
 }
 
 .chart-container {
@@ -114,6 +172,7 @@ body {
     margin-bottom: 2rem;
     height: 400px;
     position: relative;
+    box-shadow: var(--card-glow);
 }
 
 .chart-container canvas {
@@ -123,6 +182,10 @@ body {
 .chart-container h2 {
     margin-bottom: 1rem;
     font-size: 1.25rem;
+    color: var(--primary);
+    text-shadow: var(--primary-glow);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .recent-trades {
@@ -130,11 +193,16 @@ body {
     padding: 1.5rem;
     border-radius: 0.5rem;
     border: 1px solid var(--border);
+    box-shadow: var(--card-glow);
 }
 
 .recent-trades h2 {
     margin-bottom: 1rem;
     font-size: 1.25rem;
+    color: var(--primary);
+    text-shadow: var(--primary-glow);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 table {
@@ -152,6 +220,8 @@ th {
     color: var(--text-muted);
     font-weight: 500;
     font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .page-header {
@@ -161,41 +231,65 @@ th {
     margin-bottom: 2rem;
 }
 
+.page-header h2 {
+    color: var(--primary);
+    text-shadow: var(--primary-glow);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
 .btn {
     padding: 0.75rem 1.5rem;
     border-radius: 0.375rem;
     border: none;
     font-weight: 500;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.875rem;
+}
+
+.btn:active {
+    transform: scale(0.98);
 }
 
 .btn-primary {
     background: var(--primary);
     color: white;
+    box-shadow: var(--primary-glow);
 }
 
 .btn-primary:hover {
     background: var(--primary-dark);
+    box-shadow: 0 0 15px var(--primary), 0 0 30px var(--primary);
 }
 
 .btn-secondary {
     background: var(--border);
     color: var(--text);
+    border: 1px solid var(--text-muted);
 }
 
 .btn-secondary:hover {
-    background: var(--text-muted);
+    background: var(--bg-elevated);
+    border-color: var(--secondary);
+    box-shadow: var(--secondary-glow);
 }
 
 .btn-danger {
     background: var(--danger);
     color: white;
+    box-shadow: var(--danger-glow);
+}
+
+.btn-danger:hover {
+    box-shadow: 0 0 15px var(--danger), 0 0 30px var(--danger);
 }
 
 .btn-sm {
     padding: 0.5rem 1rem;
-    font-size: 0.875rem;
+    font-size: 0.75rem;
 }
 
 .algorithms-grid {
@@ -209,6 +303,13 @@ th {
     padding: 1.5rem;
     border-radius: 0.5rem;
     border: 1px solid var(--border);
+    box-shadow: var(--card-glow);
+    transition: box-shadow 0.3s, border-color 0.3s;
+}
+
+.algorithm-card:hover {
+    border-color: var(--secondary);
+    box-shadow: var(--card-glow), 0 0 25px var(--secondary)20;
 }
 
 .algorithm-card h3 {
@@ -216,12 +317,14 @@ th {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    color: var(--text);
 }
 
 .algorithm-card .strategy-type {
-    color: var(--text-muted);
+    color: var(--accent);
     font-size: 0.875rem;
     margin-bottom: 1rem;
+    text-shadow: var(--accent-glow);
 }
 
 .algorithm-card .symbols {
@@ -232,10 +335,13 @@ th {
 }
 
 .symbol-tag {
-    background: var(--border);
+    background: var(--bg-elevated);
     padding: 0.25rem 0.5rem;
     border-radius: 0.25rem;
     font-size: 0.75rem;
+    border: 1px solid var(--secondary);
+    color: var(--secondary);
+    text-shadow: var(--secondary-glow);
 }
 
 .algorithm-card .actions {
@@ -261,11 +367,12 @@ th {
     background: var(--border);
     border-radius: 12px;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.2s, box-shadow 0.2s;
 }
 
 .toggle-switch input:checked + label {
     background: var(--success);
+    box-shadow: var(--success-glow);
 }
 
 .toggle-switch label::after {
@@ -291,10 +398,11 @@ th {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(10, 10, 18, 0.9);
     justify-content: center;
     align-items: center;
     z-index: 1000;
+    backdrop-filter: blur(4px);
 }
 
 .modal.active {
@@ -309,10 +417,16 @@ th {
     max-width: 500px;
     max-height: 90vh;
     overflow-y: auto;
+    border: 1px solid var(--primary);
+    box-shadow: 0 0 30px var(--primary)40, 0 0 60px var(--secondary)20;
 }
 
 .modal-content h2 {
     margin-bottom: 1.5rem;
+    color: var(--primary);
+    text-shadow: var(--primary-glow);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .close {
@@ -320,10 +434,12 @@ th {
     font-size: 1.5rem;
     cursor: pointer;
     color: var(--text-muted);
+    transition: color 0.2s, text-shadow 0.2s;
 }
 
 .close:hover {
-    color: var(--text);
+    color: var(--danger);
+    text-shadow: var(--danger-glow);
 }
 
 .form-group {
@@ -335,6 +451,8 @@ th {
     margin-bottom: 0.5rem;
     color: var(--text-muted);
     font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .form-group input,
@@ -347,6 +465,7 @@ th {
     border-radius: 0.375rem;
     color: var(--text);
     font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .form-group input:focus,
@@ -354,6 +473,7 @@ th {
 .form-group select:focus {
     outline: none;
     border-color: var(--primary);
+    box-shadow: 0 0 10px var(--primary)40;
 }
 
 .form-actions {
@@ -368,6 +488,7 @@ th {
     border-radius: 0.5rem;
     border: 1px solid var(--border);
     margin-bottom: 2rem;
+    box-shadow: var(--card-glow);
 }
 
 #comparison-table {
@@ -375,27 +496,33 @@ th {
     border-radius: 0.5rem;
     border: 1px solid var(--border);
     overflow: hidden;
+    box-shadow: var(--card-glow);
 }
 
 .positive {
     color: var(--success);
+    text-shadow: var(--success-glow);
 }
 
 .negative {
     color: var(--danger);
+    text-shadow: var(--danger-glow);
 }
 
 .status-filled {
     color: var(--success);
+    text-shadow: var(--success-glow);
 }
 
 .status-submitted {
     color: var(--warning);
+    text-shadow: var(--warning-glow);
 }
 
 .status-canceled,
 .status-rejected {
     color: var(--danger);
+    text-shadow: var(--danger-glow);
 }
 
 /* Mobile responsive styles */
@@ -486,6 +613,6 @@ th {
     }
 
     .nav-link {
-        font-size: 0.875rem;
+        font-size: 0.75rem;
     }
 }

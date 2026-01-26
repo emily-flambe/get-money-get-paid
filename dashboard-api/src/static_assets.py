@@ -157,16 +157,39 @@ STYLES_CSS = '''* {
 }
 
 :root {
-    --primary: #3b82f6;
-    --primary-dark: #2563eb;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --danger: #ef4444;
-    --bg: #0f172a;
-    --bg-card: #1e293b;
-    --text: #f8fafc;
-    --text-muted: #94a3b8;
-    --border: #334155;
+    /* Earth Tones - Dark Mode (default) */
+    --primary: #c9a87c;
+    --primary-dark: #a8895f;
+    --secondary: #8b7355;
+    --accent: #d2691e;
+    --success: #6b8e23;
+    --warning: #daa520;
+    --danger: #a0522d;
+    --bg: #1a1612;
+    --bg-card: #2d2620;
+    --text: #f5f0e8;
+    --text-muted: #a89f94;
+    --border: #4a3f35;
+    --shadow: rgba(0, 0, 0, 0.4);
+    --modal-backdrop: rgba(20, 15, 10, 0.85);
+}
+
+[data-theme="light"] {
+    /* Earth Tones - Light Mode */
+    --primary: #8b5a2b;
+    --primary-dark: #6b4423;
+    --secondary: #a0826d;
+    --accent: #cd853f;
+    --success: #556b2f;
+    --warning: #b8860b;
+    --danger: #8b4513;
+    --bg: #f5f0e8;
+    --bg-card: #ebe4d8;
+    --text: #2d2620;
+    --text-muted: #6b5d52;
+    --border: #d4c4b0;
+    --shadow: rgba(45, 38, 32, 0.15);
+    --modal-backdrop: rgba(245, 240, 232, 0.9);
 }
 
 body {
@@ -183,6 +206,7 @@ body {
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid var(--border);
+    box-shadow: 0 2px 8px var(--shadow);
 }
 
 .navbar h1 {
@@ -242,8 +266,9 @@ body {
 .stat-card {
     background: var(--bg-card);
     padding: 1.5rem;
-    border-radius: 0.5rem;
+    border-radius: 0.625rem;
     border: 1px solid var(--border);
+    box-shadow: 0 2px 6px var(--shadow);
 }
 
 .stat-card h3 {
@@ -256,16 +281,18 @@ body {
 .stat-card p {
     font-size: 2rem;
     font-weight: 700;
+    color: var(--primary);
 }
 
 .chart-container {
     background: var(--bg-card);
     padding: 1.5rem;
-    border-radius: 0.5rem;
+    border-radius: 0.625rem;
     border: 1px solid var(--border);
     margin-bottom: 2rem;
     height: 400px;
     position: relative;
+    box-shadow: 0 2px 6px var(--shadow);
 }
 
 .chart-container canvas {
@@ -275,13 +302,15 @@ body {
 .chart-container h2 {
     margin-bottom: 1rem;
     font-size: 1.25rem;
+    color: var(--text);
 }
 
 .recent-trades {
     background: var(--bg-card);
     padding: 1.5rem;
-    border-radius: 0.5rem;
+    border-radius: 0.625rem;
     border: 1px solid var(--border);
+    box-shadow: 0 2px 6px var(--shadow);
 }
 
 .recent-trades h2 {
@@ -315,16 +344,24 @@ th {
 
 .btn {
     padding: 0.75rem 1.5rem;
-    border-radius: 0.375rem;
+    border-radius: 0.5rem;
     border: none;
     font-weight: 500;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.btn:active {
+    transform: translateY(0);
 }
 
 .btn-primary {
     background: var(--primary);
-    color: white;
+    color: #1a1612;
 }
 
 .btn-primary:hover {
@@ -337,12 +374,16 @@ th {
 }
 
 .btn-secondary:hover {
-    background: var(--text-muted);
+    background: var(--secondary);
 }
 
 .btn-danger {
     background: var(--danger);
-    color: white;
+    color: #f5f0e8;
+}
+
+.btn-danger:hover {
+    background: #8b4513;
 }
 
 .btn-sm {
@@ -359,8 +400,15 @@ th {
 .algorithm-card {
     background: var(--bg-card);
     padding: 1.5rem;
-    border-radius: 0.5rem;
+    border-radius: 0.625rem;
     border: 1px solid var(--border);
+    box-shadow: 0 2px 6px var(--shadow);
+    transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.algorithm-card:hover {
+    box-shadow: 0 4px 12px var(--shadow);
+    transform: translateY(-2px);
 }
 
 .algorithm-card h3 {
@@ -386,8 +434,9 @@ th {
 .symbol-tag {
     background: var(--border);
     padding: 0.25rem 0.5rem;
-    border-radius: 0.25rem;
+    border-radius: 0.375rem;
     font-size: 0.75rem;
+    color: var(--text);
 }
 
 .algorithm-card .actions {
@@ -427,7 +476,7 @@ th {
     left: 2px;
     width: 20px;
     height: 20px;
-    background: white;
+    background: var(--text);
     border-radius: 50%;
     transition: transform 0.2s;
 }
@@ -443,7 +492,7 @@ th {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.7);
+    background: var(--modal-backdrop);
     justify-content: center;
     align-items: center;
     z-index: 1000;
@@ -456,15 +505,18 @@ th {
 .modal-content {
     background: var(--bg-card);
     padding: 2rem;
-    border-radius: 0.5rem;
+    border-radius: 0.75rem;
     width: 100%;
     max-width: 500px;
     max-height: 90vh;
     overflow-y: auto;
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 32px var(--shadow);
 }
 
 .modal-content h2 {
     margin-bottom: 1.5rem;
+    color: var(--primary);
 }
 
 .close {
@@ -472,6 +524,7 @@ th {
     font-size: 1.5rem;
     cursor: pointer;
     color: var(--text-muted);
+    transition: color 0.2s;
 }
 
 .close:hover {
@@ -496,9 +549,10 @@ th {
     padding: 0.75rem;
     background: var(--bg);
     border: 1px solid var(--border);
-    border-radius: 0.375rem;
+    border-radius: 0.5rem;
     color: var(--text);
     font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .form-group input:focus,
@@ -506,6 +560,7 @@ th {
 .form-group select:focus {
     outline: none;
     border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(201, 168, 124, 0.2);
 }
 
 .form-actions {
@@ -517,16 +572,18 @@ th {
 .comparison-chart-container {
     background: var(--bg-card);
     padding: 1.5rem;
-    border-radius: 0.5rem;
+    border-radius: 0.625rem;
     border: 1px solid var(--border);
     margin-bottom: 2rem;
+    box-shadow: 0 2px 6px var(--shadow);
 }
 
 #comparison-table {
     background: var(--bg-card);
-    border-radius: 0.5rem;
+    border-radius: 0.625rem;
     border: 1px solid var(--border);
     overflow: hidden;
+    box-shadow: 0 2px 6px var(--shadow);
 }
 
 .positive {

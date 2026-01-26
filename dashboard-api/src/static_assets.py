@@ -156,17 +156,40 @@ STYLES_CSS = '''* {
     box-sizing: border-box;
 }
 
+/* Ocean Breeze Theme - Dark Mode (Default) */
 :root {
-    --primary: #3b82f6;
-    --primary-dark: #2563eb;
-    --success: #10b981;
-    --warning: #f59e0b;
+    --primary: #0ea5e9;
+    --primary-dark: #0284c7;
+    --secondary: #06b6d4;
+    --accent: #f97316;
+    --success: #22c55e;
+    --warning: #fbbf24;
     --danger: #ef4444;
-    --bg: #0f172a;
-    --bg-card: #1e293b;
-    --text: #f8fafc;
-    --text-muted: #94a3b8;
-    --border: #334155;
+    --bg: #0c1929;
+    --bg-card: #132238;
+    --text: #f0f9ff;
+    --text-muted: #7dd3fc;
+    --border: #1e3a5f;
+    --navbar-gradient: linear-gradient(135deg, #132238 0%, #0c1929 100%);
+    --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+}
+
+/* Ocean Breeze Theme - Light Mode */
+[data-theme="light"] {
+    --primary: #0284c7;
+    --primary-dark: #0369a1;
+    --secondary: #0891b2;
+    --accent: #ea580c;
+    --success: #16a34a;
+    --warning: #d97706;
+    --danger: #dc2626;
+    --bg: #f0f9ff;
+    --bg-card: #ffffff;
+    --text: #0c4a6e;
+    --text-muted: #0369a1;
+    --border: #bae6fd;
+    --navbar-gradient: linear-gradient(135deg, #ffffff 0%, #e0f2fe 100%);
+    --card-shadow: 0 4px 6px -1px rgba(12, 25, 41, 0.1);
 }
 
 body {
@@ -177,12 +200,13 @@ body {
 }
 
 .navbar {
-    background: var(--bg-card);
+    background: var(--navbar-gradient);
     padding: 1rem 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid var(--border);
+    box-shadow: var(--card-shadow);
 }
 
 .navbar h1 {
@@ -204,7 +228,7 @@ body {
 
 .nav-link:hover,
 .nav-link.active {
-    color: var(--primary);
+    color: var(--accent);
 }
 
 .github-link {
@@ -244,6 +268,7 @@ body {
     padding: 1.5rem;
     border-radius: 0.5rem;
     border: 1px solid var(--border);
+    box-shadow: var(--card-shadow);
 }
 
 .stat-card h3 {
@@ -266,6 +291,7 @@ body {
     margin-bottom: 2rem;
     height: 400px;
     position: relative;
+    box-shadow: var(--card-shadow);
 }
 
 .chart-container canvas {
@@ -282,6 +308,7 @@ body {
     padding: 1.5rem;
     border-radius: 0.5rem;
     border: 1px solid var(--border);
+    box-shadow: var(--card-shadow);
 }
 
 .recent-trades h2 {
@@ -319,7 +346,11 @@ th {
     border: none;
     font-weight: 500;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
 }
 
 .btn-primary {
@@ -361,6 +392,7 @@ th {
     padding: 1.5rem;
     border-radius: 0.5rem;
     border: 1px solid var(--border);
+    box-shadow: var(--card-shadow);
 }
 
 .algorithm-card h3 {
@@ -388,6 +420,7 @@ th {
     padding: 0.25rem 0.5rem;
     border-radius: 0.25rem;
     font-size: 0.75rem;
+    color: var(--secondary);
 }
 
 .algorithm-card .actions {
@@ -443,7 +476,7 @@ th {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(12, 25, 41, 0.85);
     justify-content: center;
     align-items: center;
     z-index: 1000;
@@ -461,6 +494,8 @@ th {
     max-width: 500px;
     max-height: 90vh;
     overflow-y: auto;
+    border: 1px solid var(--border);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
 .modal-content h2 {
@@ -506,6 +541,7 @@ th {
 .form-group select:focus {
     outline: none;
     border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2);
 }
 
 .form-actions {
@@ -520,6 +556,7 @@ th {
     border-radius: 0.5rem;
     border: 1px solid var(--border);
     margin-bottom: 2rem;
+    box-shadow: var(--card-shadow);
 }
 
 #comparison-table {
@@ -527,6 +564,7 @@ th {
     border-radius: 0.5rem;
     border: 1px solid var(--border);
     overflow: hidden;
+    box-shadow: var(--card-shadow);
 }
 
 .positive {

@@ -377,32 +377,43 @@ async def submit_order(algo, symbol, side, quantity_or_pct, env, notes=""):
             return
         current_price = bars[-1]["c"]
 
-        # Calculate quantity
-        if side == "buy" and isinstance(quantity_or_pct, float) and quantity_or_pct <= 1:
-            # Position size as percentage of algorithm's cash
+        # Calculate order parameters
+        use_notional = False
+        quantity = 0
+        if side == "buy" and isinstance(quantity_or_pct, (int, float)) and quantity_or_pct <= 1:
+            # Position size as percentage of algorithm's cash - use notional (dollar amount) for fractional shares
             dollar_amount = algorithm_cash * quantity_or_pct
-            quantity = int(dollar_amount / current_price)
+            if dollar_amount < 1:
+                return
+            if dollar_amount > algorithm_cash:
+                print(f"Insufficient cash for {algo['name']}: need ${dollar_amount:.2f}, have ${algorithm_cash:.2f}")
+                return
+            use_notional = True
+            notional_amount = round(dollar_amount, 2)
+            # Estimate quantity for logging (actual filled qty comes from Alpaca response)
+            quantity = round(dollar_amount / current_price, 6)
         else:
             quantity = int(quantity_or_pct)
-
-        if quantity <= 0:
-            return
-
-        # For BUY: Check if algorithm has enough cash
-        if side == "buy":
-            estimated_cost = quantity * current_price
-            if estimated_cost > algorithm_cash:
-                print(f"Insufficient cash for {algo['name']}: need ${estimated_cost:.2f}, have ${algorithm_cash:.2f}")
+            if quantity <= 0:
                 return
+            # For fixed quantity, check cash
+            if side == "buy":
+                estimated_cost = quantity * current_price
+                if estimated_cost > algorithm_cash:
+                    print(f"Insufficient cash for {algo['name']}: need ${estimated_cost:.2f}, have ${algorithm_cash:.2f}")
+                    return
 
         # Submit order to Alpaca
         order_data = {
             "symbol": symbol,
-            "qty": str(quantity),
             "side": side,
             "type": "market",
             "time_in_force": "day"
         }
+        if use_notional:
+            order_data["notional"] = str(notional_amount)
+        else:
+            order_data["qty"] = str(quantity)
 
         response = await alpaca_fetch(
             "https://paper-api.alpaca.markets/v2/orders",

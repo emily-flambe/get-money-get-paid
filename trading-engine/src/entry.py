@@ -12,6 +12,9 @@ from datetime import datetime, timezone
 async def on_scheduled(event, env, ctx):
     """Cron trigger handler - runs every minute during market hours"""
     try:
+        # Sync order statuses from Alpaca (runs even when market closed)
+        await sync_order_statuses(env)
+
         # Check if market is open
         if not await is_market_open(env):
             return Response.new("Market closed, skipping")
@@ -129,6 +132,54 @@ async def is_market_open(env) -> bool:
     except Exception as e:
         print(f"Error checking market status: {e}")
         return False
+
+
+async def sync_order_statuses(env):
+    """Sync pending order statuses from Alpaca to database"""
+    try:
+        # Get trades that aren't in a terminal state
+        result = await env.DB.prepare("""
+            SELECT id, alpaca_order_id FROM trades
+            WHERE status NOT IN ('filled', 'canceled', 'expired', 'rejected')
+            AND alpaca_order_id IS NOT NULL AND alpaca_order_id != ''
+        """).all()
+
+        pending_trades = js_to_py(result.results)
+        if not pending_trades:
+            return
+
+        for trade in pending_trades:
+            trade = js_to_py(trade) if hasattr(trade, 'to_py') else dict(trade)
+            alpaca_order_id = trade.get("alpaca_order_id")
+            if not alpaca_order_id:
+                continue
+
+            try:
+                response = await alpaca_fetch(
+                    f"https://paper-api.alpaca.markets/v2/orders/{alpaca_order_id}",
+                    env
+                )
+                order = json.loads(await response.text())
+
+                new_status = order.get("status")
+                filled_price = order.get("filled_avg_price")
+                filled_at = order.get("filled_at")
+
+                # Update the trade record
+                await env.DB.prepare("""
+                    UPDATE trades
+                    SET status = ?, price = COALESCE(?, price), filled_at = COALESCE(?, filled_at)
+                    WHERE id = ?
+                """).bind(new_status, filled_price, filled_at, trade["id"]).run()
+
+                if new_status != trade.get("status"):
+                    print(f"Updated trade {trade['id']} status: {new_status}")
+
+            except Exception as e:
+                print(f"Error syncing order {alpaca_order_id}: {e}")
+
+    except Exception as e:
+        print(f"Error in sync_order_statuses: {e}")
 
 
 def js_to_py(obj):

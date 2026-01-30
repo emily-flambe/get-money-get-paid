@@ -336,7 +336,11 @@ async def run_buy_and_hold(algo, config, symbols, env):
 async def get_bars(symbol: str, limit: int, env) -> list:
     """Fetch OHLCV bars from Alpaca"""
     try:
-        url = f"https://data.alpaca.markets/v2/stocks/{symbol}/bars?timeframe=1Day&limit={limit}&feed=iex"
+        # Calculate start date - go back extra days to account for weekends/holidays
+        from datetime import timedelta
+        days_back = int(limit * 1.5) + 10  # Buffer for weekends and holidays
+        start_date = (datetime.now(timezone.utc) - timedelta(days=days_back)).strftime("%Y-%m-%d")
+        url = f"https://data.alpaca.markets/v2/stocks/{symbol}/bars?timeframe=1Day&limit={limit}&start={start_date}"
         response = await alpaca_fetch(url, env)
         data = json.loads(await response.text())
         bars = data.get("bars", []) or []

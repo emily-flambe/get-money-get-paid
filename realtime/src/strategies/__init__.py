@@ -1,4 +1,4 @@
-from .base import Strategy, Signal
+from .base import Strategy, Signal, SignalType
 from .momentum import MomentumStrategy
 from .mean_reversion import MeanReversionStrategy
 
@@ -14,4 +14,4 @@ def create_strategy(config: dict) -> Strategy:
         raise ValueError(f"Unknown strategy type: {strategy_type}")
     return STRATEGY_TYPES[strategy_type](config)
 
-__all__ = ["Strategy", "Signal", "create_strategy", "STRATEGY_TYPES"]
+__all__ = ["Strategy", "Signal", "SignalType", "create_strategy", "STRATEGY_TYPES"]

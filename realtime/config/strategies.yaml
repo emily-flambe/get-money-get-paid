@@ -1,51 +1,74 @@
-# Strategy instances
-# Each entry creates a strategy instance from a Python class
+# Strategy instances - matches D1 algorithms exactly
+# Each entry has an algorithm_id for syncing trades to the dashboard
 
 strategies:
-  # Simple momentum - buy on quick price jumps
-  - type: momentum
-    name: "SPY Momentum Scalper"
+  # Gamestonk - buy and hold GME
+  - type: buy_and_hold
+    name: "Gamestonk"
+    algorithm_id: "e70f5af3-c279-45c2-88c9-9b1aecb1067e"
     enabled: true
-    symbols: [SPY]
-    params:
-      threshold_pct: 0.05        # 0.05% move triggers buy
-      exit_threshold_pct: 0.03   # 0.03% reversal triggers exit
-      lookback_seconds: 10       # Measure momentum over this window
-    position_size_pct: 0.2
-    cash_allocation: 2000        # $2000 allocated to this strategy
+    symbols: [GME]
+    params: {}
+    position_size_pct: 1.0
+    cash_allocation: 1000
 
-  # Tech momentum - slightly higher threshold for volatile stocks
+  # Energy Sector Momentum
   - type: momentum
-    name: "Tech Momentum"
+    name: "Energy Sector Momentum"
+    algorithm_id: "1d7ce170-81a0-4dad-8144-82e34be9f5ab"
     enabled: true
-    symbols: [NVDA, AMD, AAPL]
+    symbols: [XOM, CVX, COP]
     params:
       threshold_pct: 0.08
       exit_threshold_pct: 0.05
       lookback_seconds: 15
-    position_size_pct: 0.15
+    position_size_pct: 0.33
     cash_allocation: 1500
 
-  # Mean reversion - buy dips, sell rips
-  - type: mean_reversion
-    name: "SPY Mean Reversion"
+  # Buy & Hold Benchmark - SPY
+  - type: buy_and_hold
+    name: "Buy & Hold Benchmark"
+    algorithm_id: "66c4c384-5b58-4de6-a08e-fa186711c6e0"
     enabled: true
     symbols: [SPY]
-    params:
-      window_seconds: 60         # 1-minute rolling window
-      std_threshold: 2.0         # Buy when price < mean - 2*std
-      exit_threshold: 0.5        # Exit when back within 0.5*std of mean
-    position_size_pct: 0.2
+    params: {}
+    position_size_pct: 1.0
     cash_allocation: 2000
 
-  # Gamestonk YOLO - momentum on meme stocks
+  # Momentum Hunter - volatile tech/growth stocks
   - type: momentum
-    name: "Meme Momentum"
-    enabled: false               # Disabled by default
-    symbols: [GME, AMC]
+    name: "Momentum Hunter"
+    algorithm_id: "9de8684a-34a1-4eb4-9f9d-011638ed8551"
+    enabled: true
+    symbols: [TSLA, AMD, META]
     params:
-      threshold_pct: 0.15
-      exit_threshold_pct: 0.10
-      lookback_seconds: 5
+      threshold_pct: 0.10
+      exit_threshold_pct: 0.06
+      lookback_seconds: 10
+    position_size_pct: 0.33
+    cash_allocation: 1500
+
+  # RSI Mean Reversion
+  - type: rsi
+    name: "RSI Mean Reversion"
+    algorithm_id: "9af17706-c828-442a-a086-9c5b5051c1c2"
+    enabled: true
+    symbols: [SPY, QQQ]
+    params:
+      period: 14
+      oversold: 30
+      overbought: 70
     position_size_pct: 0.5
-    cash_allocation: 500
+    cash_allocation: 2000
+
+  # Tech SMA Crossover
+  - type: sma_crossover
+    name: "Tech SMA Crossover"
+    algorithm_id: "73857412-f245-4c9d-92f8-a36426a4d159"
+    enabled: true
+    symbols: [AAPL, GOOGL, MSFT, NVDA]
+    params:
+      short_window_seconds: 30
+      long_window_seconds: 120
+    position_size_pct: 0.25
+    cash_allocation: 2000

@@ -95,6 +95,11 @@ async def on_fetch(request, env, ctx):
                 elif sub_resource == "performance":
                     return await get_algorithm_performance(algo_id, env, cors_headers)
 
+        elif path == "/api/trades" or path == "api/trades":
+            if method == "POST":
+                body = await request.text()
+                return await create_trade(json.loads(body), env, cors_headers)
+
         elif path == "/api/comparison" or path == "api/comparison":
             return await get_comparison(env, cors_headers)
 
@@ -291,6 +296,34 @@ async def get_algorithm_trades(algo_id, env, cors_headers):
 
     return Response.new(
         json.dumps({"trades": trades}),
+        headers=Headers.new(cors_headers.items())
+    )
+
+
+async def create_trade(data, env, cors_headers):
+    """POST /api/trades - Record a trade from the realtime engine"""
+    trade_id = data.get("id") or str(uuid.uuid4())
+
+    await env.DB.prepare("""
+        INSERT INTO trades (id, algorithm_id, symbol, side, quantity, order_type, status, alpaca_order_id, notes, filled_price, filled_qty)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """).bind(
+        trade_id,
+        data.get("algorithm_id"),
+        data.get("symbol"),
+        data.get("side"),
+        data.get("quantity", 0),
+        data.get("order_type", "market"),
+        data.get("status", "filled"),
+        data.get("alpaca_order_id", ""),
+        data.get("notes", ""),
+        data.get("filled_price", 0),
+        data.get("filled_qty", 0)
+    ).run()
+
+    return Response.new(
+        json.dumps({"id": trade_id, "message": "Trade recorded"}),
+        status=201,
         headers=Headers.new(cors_headers.items())
     )
 

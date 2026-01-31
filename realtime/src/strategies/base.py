@@ -14,6 +14,7 @@ class Signal:
     type: SignalType
     symbol: str
     strategy_name: str
+    algorithm_id: str  # D1 algorithm UUID for syncing
     reason: str
     price: float
     timestamp: float
@@ -28,6 +29,7 @@ class Strategy:
 
     def __init__(self, config: dict):
         self.name = config["name"]
+        self.algorithm_id = config.get("algorithm_id", "")  # D1 UUID for syncing
         self.symbols = config["symbols"]
         self.params = config.get("params", {})
         self.position_size_pct = config.get("position_size_pct", 0.1)
@@ -91,6 +93,7 @@ class Strategy:
             type=signal_type,
             symbol=symbol,
             strategy_name=self.name,
+            algorithm_id=self.algorithm_id,
             reason=reason,
             price=price,
             timestamp=time.time(),

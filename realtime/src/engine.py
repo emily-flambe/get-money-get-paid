@@ -6,6 +6,7 @@ from .websocket import AlpacaWebSocket
 from .indicators import TickBuffer
 from .orders import OrderManager
 from .strategies import Strategy, Signal, SignalType
+from .d1_sync import D1Sync
 
 log = logging.getLogger(__name__)
 
@@ -21,11 +22,13 @@ class TradingEngine:
         order_manager: OrderManager,
         strategies: list[Strategy],
         tick_buffer: Optional[TickBuffer] = None,
+        d1_sync: Optional[D1Sync] = None,
     ):
         self.ws = websocket
         self.orders = order_manager
         self.strategies = strategies
         self.tick_buffer = tick_buffer or TickBuffer()
+        self.d1_sync = d1_sync or D1Sync()
 
         # Build symbol -> strategies mapping
         self.symbol_strategies: dict[str, list[Strategy]] = {}
@@ -110,7 +113,22 @@ class TradingEngine:
                 filled_qty = float(order.get("filled_qty", 0)) or (dollar_amount / signal.price)
                 strategy.update_position(signal.symbol, strategy.get_position(signal.symbol) + filled_qty)
             else:
+                filled_qty = strategy.get_position(signal.symbol)
                 strategy.update_position(signal.symbol, 0)
+
+            # Sync trade to D1 dashboard
+            if signal.algorithm_id:
+                await self.d1_sync.record_trade(
+                    algorithm_id=signal.algorithm_id,
+                    symbol=signal.symbol,
+                    side=signal.type.value,
+                    quantity=filled_qty,
+                    alpaca_order_id=order.get("id", ""),
+                    status=order.get("status", "submitted"),
+                    filled_price=float(order.get("filled_avg_price", 0) or signal.price),
+                    filled_qty=float(order.get("filled_qty", 0) or filled_qty),
+                    notes=signal.reason,
+                )
 
     async def run(self):
         """Main run loop"""
@@ -151,3 +169,4 @@ class TradingEngine:
         """Stop the engine"""
         await self.ws.close()
         await self.orders.close()
+        await self.d1_sync.close()

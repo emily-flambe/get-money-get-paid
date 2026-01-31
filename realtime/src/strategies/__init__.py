@@ -1,10 +1,16 @@
 from .base import Strategy, Signal, SignalType
 from .momentum import MomentumStrategy
 from .mean_reversion import MeanReversionStrategy
+from .buy_and_hold import BuyAndHoldStrategy
+from .sma_crossover import SMACrossoverStrategy
+from .rsi import RSIStrategy
 
 STRATEGY_TYPES = {
     "momentum": MomentumStrategy,
     "mean_reversion": MeanReversionStrategy,
+    "buy_and_hold": BuyAndHoldStrategy,
+    "sma_crossover": SMACrossoverStrategy,
+    "rsi": RSIStrategy,
 }
 
 def create_strategy(config: dict) -> Strategy:

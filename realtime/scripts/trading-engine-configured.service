@@ -1,0 +1,16 @@
+[Unit]
+Description=Real-time Trading Engine
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/mnt/c/Users/emily/Documents/GitHub/get-money-get-paid/realtime
+Environment=ALPACA_API_KEY=PKAGP5F4B637L4VWAD6SOCUCTR
+Environment=ALPACA_SECRET_KEY=BEYZ6eZFwVMe1C8srevdkvL8k6zmmBh1nDip5NFsFMMR
+ExecStart=/opt/dagster/venv/bin/python -m src.main --log-level INFO
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

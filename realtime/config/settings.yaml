@@ -1,0 +1,32 @@
+# Alpaca API (paper trading)
+alpaca:
+  api_key: ${ALPACA_API_KEY}
+  secret_key: ${ALPACA_SECRET_KEY}
+  base_url: "https://paper-api.alpaca.markets"
+  data_url: "wss://stream.data.alpaca.markets/v2/iex"
+
+# Local Postgres
+postgres:
+  host: localhost
+  port: 5432
+  database: trading
+  user: dagster
+  password: dagster
+
+# D1 sync (for dashboard)
+d1_sync:
+  enabled: true
+  api_url: "https://stonks.emilycogsdill.com/api"
+  interval_seconds: 300  # 5 minutes
+
+# Order safety limits
+safety:
+  max_position_pct: 0.25       # Max 25% of account in one symbol
+  max_orders_per_minute: 10
+  cooldown_seconds: 5          # Min time between orders on same symbol
+  paper_only: true             # Refuse to run against live API
+
+# Logging
+logging:
+  level: INFO
+  tick_logging: false          # Set true to log every tick (verbose)

@@ -1,0 +1,25 @@
+[project]
+name = "realtime-trading"
+version = "0.1.0"
+description = "WebSocket-based real-time trading engine"
+requires-python = ">=3.11"
+dependencies = [
+    "websockets>=12.0",
+    "alpaca-py>=0.21",
+    "asyncpg>=0.29",
+    "pyyaml>=6.0",
+    "httpx>=0.27",
+    "orjson>=3.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+]
+dagster = [
+    "dagster>=1.6",
+]
+
+[project.scripts]
+trading-engine = "src.main:main"

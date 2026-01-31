@@ -1,0 +1,51 @@
+# Strategy instances
+# Each entry creates a strategy instance from a Python class
+
+strategies:
+  # Simple momentum - buy on quick price jumps
+  - type: momentum
+    name: "SPY Momentum Scalper"
+    enabled: true
+    symbols: [SPY]
+    params:
+      threshold_pct: 0.05        # 0.05% move triggers buy
+      exit_threshold_pct: 0.03   # 0.03% reversal triggers exit
+      lookback_seconds: 10       # Measure momentum over this window
+    position_size_pct: 0.2
+    cash_allocation: 2000        # $2000 allocated to this strategy
+
+  # Tech momentum - slightly higher threshold for volatile stocks
+  - type: momentum
+    name: "Tech Momentum"
+    enabled: true
+    symbols: [NVDA, AMD, AAPL]
+    params:
+      threshold_pct: 0.08
+      exit_threshold_pct: 0.05
+      lookback_seconds: 15
+    position_size_pct: 0.15
+    cash_allocation: 1500
+
+  # Mean reversion - buy dips, sell rips
+  - type: mean_reversion
+    name: "SPY Mean Reversion"
+    enabled: true
+    symbols: [SPY]
+    params:
+      window_seconds: 60         # 1-minute rolling window
+      std_threshold: 2.0         # Buy when price < mean - 2*std
+      exit_threshold: 0.5        # Exit when back within 0.5*std of mean
+    position_size_pct: 0.2
+    cash_allocation: 2000
+
+  # Gamestonk YOLO - momentum on meme stocks
+  - type: momentum
+    name: "Meme Momentum"
+    enabled: false               # Disabled by default
+    symbols: [GME, AMC]
+    params:
+      threshold_pct: 0.15
+      exit_threshold_pct: 0.10
+      lookback_seconds: 5
+    position_size_pct: 0.5
+    cash_allocation: 500

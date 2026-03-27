@@ -52,3 +52,9 @@ sudo journalctl -u trading-engine -f
 - Strategies defined in `realtime/config/strategies.yaml`
 - Add new strategy types in `realtime/src/strategies/`
 - Dagster monitors health and syncs data to D1
+
+## Knowledge Graph (Agent-MCP)
+
+After significant changes (new features, architecture decisions, schema changes), save context to Agent-MCP using `update_project_context`. Use the key prefix `get-money-get-paid/` (e.g., `get-money-get-paid/architecture`).
+
+Update existing entries when information changes. Create new keys for new topics. This ensures any agent in any session can retrieve project context via `ask_project_rag`.

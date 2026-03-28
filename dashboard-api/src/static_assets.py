@@ -157,16 +157,35 @@ STYLES_CSS = '''* {
 }
 
 :root {
-    --primary: #3b82f6;
-    --primary-dark: #2563eb;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --danger: #ef4444;
-    --bg: #0f172a;
-    --bg-card: #1e293b;
-    --text: #f8fafc;
-    --text-muted: #94a3b8;
-    --border: #334155;
+    /* Forest Mint Dark Theme (default) */
+    --primary: #10b981;
+    --primary-dark: #059669;
+    --secondary: #34d399;
+    --accent: #a3e635;
+    --success: #22c55e;
+    --warning: #fbbf24;
+    --danger: #f87171;
+    --bg: #0f1a14;
+    --bg-card: #1a2b22;
+    --text: #ecfdf5;
+    --text-muted: #86efac;
+    --border: #2d4a3e;
+}
+
+[data-theme="light"] {
+    /* Forest Mint Light Theme */
+    --primary: #059669;
+    --primary-dark: #047857;
+    --secondary: #10b981;
+    --accent: #65a30d;
+    --success: #16a34a;
+    --warning: #d97706;
+    --danger: #dc2626;
+    --bg: #ecfdf5;
+    --bg-card: #d1fae5;
+    --text: #064e3b;
+    --text-muted: #047857;
+    --border: #a7f3d0;
 }
 
 body {

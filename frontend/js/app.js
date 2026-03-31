@@ -1,11 +1,39 @@
 // Main application logic for Paper Trading Dashboard
 
 document.addEventListener('DOMContentLoaded', () => {
+    initTheme();
     initNavigation();
     initModal();
     initAlgorithmForm();
     loadDashboard();
 });
+
+// Theme toggle
+function initTheme() {
+    const toggle = document.getElementById('theme-toggle');
+    const html = document.documentElement;
+
+    // Check for saved preference or system preference
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+        html.setAttribute('data-theme', savedTheme);
+    } else if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+        html.setAttribute('data-theme', 'light');
+    }
+
+    toggle.addEventListener('click', () => {
+        const currentTheme = html.getAttribute('data-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+
+        if (newTheme === 'dark') {
+            html.removeAttribute('data-theme');
+        } else {
+            html.setAttribute('data-theme', newTheme);
+        }
+
+        localStorage.setItem('theme', newTheme);
+    });
+}
 
 // Navigation
 function initNavigation() {
